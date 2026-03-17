@@ -1,0 +1,40 @@
+# ========================
+# Backend — Python
+# ========================
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/**/*.pyc
+backend/**/*.pyo
+backend/.env
+backend/*.egg-info/
+backend/dist/
+backend/.pytest_cache/
+
+# ========================
+# Frontend — Node
+# ========================
+frontend/node_modules/
+frontend/dist/
+#frontend/.env
+frontend/.env.local
+
+# ========================
+# IDEs y editores
+# ========================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ========================
+# Sistema operativo
+# ========================
+.DS_Store
+Thumbs.db
+
+# ========================
+# Misceláneos
+# ========================
+*.log
+*.backup
