@@ -38,7 +38,6 @@ Desarrollada durante el 7mo semestre en el Tecnológico de Costa Rica.
 
 ```bash
 git clone https://github.com/JP113z/ATLAS-INFANCIAS.git
-cd atlas-infancias
 ```
 
 ### 2. Configurar el backend
@@ -175,3 +174,4 @@ git push origin feature/nombre-de-la-feature
 
 > **Importante:** Los archivos `.env` nunca se suben al repositorio.
 > Cada desarrollador debe crear los suyos copiando los archivos `.env.example` que sí están en el repo.
+> Cada vez que se instale una librería nueva, hay que volver a correr `venv\Scripts\activate && pip freeze > requirements.txt` para mantener el requirements actualizado.
