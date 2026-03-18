@@ -81,14 +81,90 @@ Contenido del `.env`:
 VITE_API_URL=http://localhost:8000
 ```
 
-### 4. Crear la base de datos
+## Base de datos — recrear en local
+
+### Paso 1 — Crear la base y activar PostGIS
+
+En pgAdmin, abre el **Query Tool** conectado a tu servidor y ejecuta:
 
 ```sql
--- En psql o pgAdmin
 CREATE DATABASE atlas_infancias;
-\c atlas_infancias
-CREATE EXTENSION postgis;
 ```
+
+Luego conéctate a la base recién creada y ejecuta:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS postgis;
+```
+
+### Paso 2 — Crear las tablas
+
+```sql
+CREATE TABLE users (
+    id         SERIAL PRIMARY KEY,
+    username   VARCHAR(50)  UNIQUE NOT NULL,
+    email      VARCHAR(100) UNIQUE NOT NULL,
+    password   VARCHAR(255) NOT NULL,
+    gender     VARCHAR(20),
+    role       VARCHAR(20)  DEFAULT 'user',
+    verified   BOOLEAN      DEFAULT FALSE,
+    created_at TIMESTAMP    DEFAULT NOW()
+);
+
+CREATE TABLE schools (
+    id   SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    city VARCHAR(100)
+);
+
+CREATE TABLE stickers (
+    id         SERIAL PRIMARY KEY,
+    user_id    INTEGER REFERENCES users(id)   ON DELETE SET NULL,
+    school_id  INTEGER REFERENCES schools(id) ON DELETE SET NULL,
+    category   VARCHAR(50) NOT NULL,
+    geojson    JSONB       NOT NULL,
+    location   GEOMETRY(Point, 4326),
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE votes (
+    id         SERIAL PRIMARY KEY,
+    sticker_id INTEGER REFERENCES stickers(id) ON DELETE CASCADE,
+    user_id    INTEGER REFERENCES users(id)    ON DELETE SET NULL,
+    question   TEXT    NOT NULL,
+    answer     BOOLEAN NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+### Descripción de las tablas
+
+| Tabla | Propósito |
+|-------|-----------|
+| `users` | Usuarios registrados, incluye género y rol |
+| `schools` | Escuelas donde se realizaron actividades |
+| `stickers` | Puntos georeferenciados con su GeoJSON completo |
+| `votes` | Respuestas de usuarios a preguntas sobre stickers |
+
+> En `stickers` se guardan dos representaciones de la ubicación: `geojson` como `JSONB` para retornarlo completo hacia el frontend, y `location` como `GEOMETRY` para hacer consultas espaciales con PostGIS.
+
+> Para probar que funciono la conexion, cambiar el backend/.env por sus credenciales de la base de datos (usar la plantilla de .env.example) y correr estos comandos en la consola:
+
+```
+venv\Scripts\activate
+uvicorn app.main:app --reload
+```
+Deberías ver esto en la terminal, sin errores:
+```
+INFO:     Uvicorn running on http://127.0.0.1:8000
+INFO:     Application startup complete.
+```
+Abre estas dos URLs:
+```
+http://localhost:8000/
+http://localhost:8000/health/db
+```
+En ellas deberia de salir que todo salio bien
 
 ---
 
