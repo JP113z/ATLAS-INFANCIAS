@@ -14,7 +14,7 @@ export default function MapView() {
         {/* Sticker inventado  */}
         <Marker position={center}>
           <Popup>
-            🎨 Sticker de prueba <br />
+            Sticker de prueba <br />
             ATLAS Infancias
           </Popup>
         </Marker>
