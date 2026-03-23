@@ -1,0 +1,17 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-84.0875, 9.9347]
+      },
+      "properties": {
+        "category": "arte",
+        "school_id": 1,
+        "user_id": 1
+      }
+    }
+  ]
+}
