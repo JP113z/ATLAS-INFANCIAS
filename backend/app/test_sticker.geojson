@@ -3,15 +3,43 @@
   "features": [
     {
       "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [-84.0875, 9.9347]
-      },
-      "properties": {
-        "category": "arte",
-        "school_id": 1,
-        "user_id": 1
-      }
+      "geometry": { "type": "Point", "coordinates": [-84.0875, 9.9347] },
+      "properties": { "category": "riesgo", "school_id": 1, "user_id": 1 }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-84.0900, 9.9365] },
+      "properties": { "category": "afecto", "school_id": 2, "user_id": 2 }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-84.0850, 9.9325] },
+      "properties": { "category": "recreacion", "school_id": 3, "user_id": 3 }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-84.0820, 9.9352] },
+      "properties": { "category": "transito", "school_id": 4, "user_id": 4 }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-84.0950, 9.9390] },
+      "properties": { "category": "riesgo", "school_id": 5, "user_id": 5 }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-84.0890, 9.9310] },
+      "properties": { "category": "afecto", "school_id": 1, "user_id": 2 }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-84.0912, 9.9332] },
+      "properties": { "category": "recreacion", "school_id": 2, "user_id": 1 }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-84.0835, 9.9381] },
+      "properties": { "category": "transito", "school_id": 3, "user_id": 5 }
     }
   ]
 }

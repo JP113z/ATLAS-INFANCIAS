@@ -6,6 +6,10 @@ from typing import Any, Dict, List, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.models import Sticker
+from app.models import User
+from app.models import School
+
+
 from app.schemas.geojson import ImportSummary, ValidationIssue
 
 

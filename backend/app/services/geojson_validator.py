@@ -1,4 +1,5 @@
 #valida estructura, tipos, campos requeridos, coherencia
+ALLOWED = {"transito", "recreacion", "riesgo", "afecto"}
 
 from typing import Any, Dict, List, Tuple, Optional
 from app.schemas.geojson import GeoJSONValidationResult, ValidationIssue
@@ -25,11 +26,14 @@ def _validate_point_coordinates(coords: Any, feature_index: int) -> List[Validat
         return issues
 
 def validate_geojson(data: Dict[str, Any], require_properties: bool = False) -> GeoJSONValidationResult:
-       #PAra cumplir el requerimiento 8 de validar estrucuta
+    ALLOWED_CATEGORIES = {"transito", "recreacion", "riesgo", "afecto"}
+    ALLOWED_GENDERS = {"masculino", "femenino", "prefiero_no_decir"}  # si decides permitirlo en GeoJSON
+
+       #Para cumplir el requerimiento 8 de validar estrucuta
     issues: List[ValidationIssue] = []
 
     if not isinstance(data, dict):
-          return GeoJSONValidationResult(is_valid = False , issues = [ValidationIssue(path = "$", message = "El contenido deve ser un geojson.")])       
+          return GeoJSONValidationResult(is_valid = False , issues = [ValidationIssue(path = "$", message = "El contenido debe ser un geojson.")])       
     gtype = data.get("type")
     if gtype not in ("FeatureCollection", "Feature"):
           issues.append(ValidationIssue(path = "type", message = "Type debe ser FeatureCollecion o Feature"))
