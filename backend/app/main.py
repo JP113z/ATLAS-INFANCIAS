@@ -1,9 +1,17 @@
+
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from app.database import engine
+import app.models
+from app.routers.geojson import router as geojson_router
+
+from app.routers import stickers
 
 app = FastAPI(title="ATLAS Infancias API")
+
+app.include_router(geojson_router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -11,7 +19,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
+app.include_router(stickers.router)
 @app.get("/")
 def root():
     return {"status": "ok"}
