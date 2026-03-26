@@ -179,6 +179,7 @@ npm run dev
 
 # Terminal 2 — Backend en http://localhost:8000
 cd backend
+venv\Scripts\activate
 uvicorn app.main:app --reload
 
 # Terminal 3 — Base de datos
