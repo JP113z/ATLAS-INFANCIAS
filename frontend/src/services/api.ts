@@ -1,8 +1,268 @@
-import axios from 'axios';
+/* ───────────────────────────────────────────────
+   Servicio API — ATLAS Infancias
+   
+   Centraliza todas las llamadas al backend FastAPI.
+   Ajustá las rutas si tu backend usa prefijos distintos
+   (por ejemplo /api/v1/...).
+   ─────────────────────────────────────────────── */
 
-const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
-    headers: { 'Content-Type': 'application/json' }
-});
+import type {
+  AuthResponse,
+  LoginRequest,
+  RegisterRequest,
+  User,
+  UserUpdate,
+  School,
+  FeatureCollection,
+  StickerFilters,
+  Comment,
+  VoteSession,
+  VoteResults,
+} from "../types";
 
-export default api;
+const API_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
+
+// ─── Helpers ───
+
+function getToken(): string | null {
+  return localStorage.getItem("atlas_token");
+}
+
+function authHeaders(): HeadersInit {
+  const token = getToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
+async function handleResponse<T>(res: Response): Promise<T> {
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const message = body.detail || body.message || `Error HTTP ${res.status}`;
+    throw new Error(message);
+  }
+  return res.json();
+}
+
+// ─── Auth ───
+
+export async function login(data: LoginRequest): Promise<AuthResponse> {
+  // FastAPI OAuth2 espera form-data, no JSON
+  const formData = new URLSearchParams();
+  formData.append("username", data.email); // OAuth2PasswordRequestForm usa "username"
+  formData.append("password", data.password);
+
+  const res = await fetch(`${API_URL}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: formData.toString(),
+  });
+
+  const result = await handleResponse<AuthResponse>(res);
+  localStorage.setItem("atlas_token", result.access_token);
+  return result;
+}
+
+export async function register(data: RegisterRequest): Promise<User> {
+  const res = await fetch(`${API_URL}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  return handleResponse<User>(res);
+}
+
+export async function recoverPassword(email: string): Promise<{ message: string }> {
+  const res = await fetch(`${API_URL}/auth/recover`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  return handleResponse(res);
+}
+
+export function logout(): void {
+  localStorage.removeItem("atlas_token");
+}
+
+export function isAuthenticated(): boolean {
+  return !!getToken();
+}
+
+// ─── Usuario actual ───
+
+export async function getMe(): Promise<User> {
+  const res = await fetch(`${API_URL}/users/me`, {
+    headers: authHeaders(),
+  });
+  return handleResponse<User>(res);
+}
+
+export async function updateMe(data: UserUpdate): Promise<User> {
+  const res = await fetch(`${API_URL}/users/me`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse<User>(res);
+}
+
+export async function deleteMe(): Promise<void> {
+  const res = await fetch(`${API_URL}/users/me`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || "Error eliminando cuenta");
+  }
+}
+
+// ─── Usuarios (admin) ───
+
+export async function getUsers(): Promise<User[]> {
+  const res = await fetch(`${API_URL}/users`, {
+    headers: authHeaders(),
+  });
+  return handleResponse<User[]>(res);
+}
+
+export async function blockUser(userId: number): Promise<void> {
+  const res = await fetch(`${API_URL}/users/${userId}/block`, {
+    method: "PUT",
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || "Error bloqueando usuario");
+  }
+}
+
+// ─── Escuelas ───
+
+export async function getSchools(): Promise<School[]> {
+  const res = await fetch(`${API_URL}/schools`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+// ─── Stickers (GeoJSON) ───
+
+export async function getStickers(filters: StickerFilters = {}): Promise<FeatureCollection> {
+  const params = new URLSearchParams();
+
+  if (filters.category) params.set("category", filters.category);
+  if (filters.gender) params.set("gender", filters.gender);
+  if (filters.school_id) params.set("school_id", filters.school_id);
+  if (filters.user_id) params.set("user_id", filters.user_id);
+
+  if (filters.date_from || filters.date_to) {
+    if (filters.date_from) params.set("date_from", filters.date_from);
+    if (filters.date_to) params.set("date_to", filters.date_to);
+  } else if (filters.date_preset) {
+    params.set("date_preset", filters.date_preset);
+  }
+
+  const qs = params.toString();
+  const res = await fetch(`${API_URL}/stickers${qs ? `?${qs}` : ""}`);
+  return handleResponse<FeatureCollection>(res);
+}
+
+export async function uploadGeoJSON(file: File): Promise<{ message: string; count: number }> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch(`${API_URL}/stickers/upload`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${getToken()}` },
+    body: formData,
+  });
+  return handleResponse(res);
+}
+
+export async function downloadGeoJSON(filters: StickerFilters = {}): Promise<Blob> {
+  const params = new URLSearchParams();
+  if (filters.category) params.set("category", filters.category);
+  if (filters.gender) params.set("gender", filters.gender);
+  if (filters.school_id) params.set("school_id", filters.school_id);
+  if (filters.user_id) params.set("user_id", filters.user_id);
+
+  const qs = params.toString();
+  const res = await fetch(`${API_URL}/stickers/download${qs ? `?${qs}` : ""}`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error("Error descargando GeoJSON");
+  return res.blob();
+}
+
+// ─── Comentarios ───
+
+export async function getComments(stickerId: number): Promise<Comment[]> {
+  const res = await fetch(`${API_URL}/stickers/${stickerId}/comments`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function addComment(stickerId: number, content: string): Promise<Comment> {
+  const res = await fetch(`${API_URL}/stickers/${stickerId}/comments`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ content }),
+  });
+  return handleResponse<Comment>(res);
+}
+
+export async function deleteComment(stickerId: number, commentId: number): Promise<void> {
+  const res = await fetch(`${API_URL}/stickers/${stickerId}/comments/${commentId}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error("Error eliminando comentario");
+}
+
+// ─── Votaciones ───
+
+export async function createVoteSession(stickerId: number, question: string): Promise<VoteSession> {
+  const res = await fetch(`${API_URL}/votes`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ sticker_id: stickerId, question }),
+  });
+  return handleResponse<VoteSession>(res);
+}
+
+export async function getVoteSession(code: string): Promise<VoteSession> {
+  const res = await fetch(`${API_URL}/votes/${code}`);
+  return handleResponse<VoteSession>(res);
+}
+
+export async function submitVote(code: string, answer: boolean): Promise<{ message: string }> {
+  const res = await fetch(`${API_URL}/votes/${code}/answer`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ answer }),
+  });
+  return handleResponse(res);
+}
+
+export async function getVoteResults(code: string): Promise<VoteResults> {
+  const res = await fetch(`${API_URL}/votes/${code}/results`);
+  return handleResponse<VoteResults>(res);
+}
+
+export async function endVoteSession(code: string): Promise<void> {
+  const res = await fetch(`${API_URL}/votes/${code}/end`, {
+    method: "PUT",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error("Error finalizando votación");
+}
+
+export async function getActiveVoters(code: string): Promise<{ count: number }> {
+  const res = await fetch(`${API_URL}/votes/${code}/voters`);
+  return handleResponse(res);
+}
