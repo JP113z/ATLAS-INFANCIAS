@@ -6,8 +6,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from app.models.sticker import Sticker
 
-def export_stickers_as_feature_collection(
-    db: Session,category: Optional[str] = None,school_id: Optional[int] = None,user_id: Optional[int] = None) -> Dict[str, Any]:
+
+def export_stickers_as_feature_collection(db: Session,category: Optional[str] = None,school_id: Optional[int] = None,user_id: Optional[int] = None) -> Dict[str, Any]:
 
     query = db.query(Sticker)
 
@@ -23,16 +23,20 @@ def export_stickers_as_feature_collection(
     features: List[Dict[str, Any]] = []
     for s in stickers:
         feat = s.geojson
+        if not isinstance(feat, dict):
+            continue
 
-        # asegurar que tenga properties “mínimas” consistentes sin destruir el respaldo original:
-        if isinstance(feat, dict):
-            props = feat.get("properties") if isinstance(feat.get("properties"), dict) else {}
-            props.setdefault("category", s.category)
-            props.setdefault("user_id", s.user_id)
-            props.setdefault("school_id", s.school_id)
-            props.setdefault("sticker_id", s.id)
-            feat["properties"] = props
+        feat_copy = dict(feat)
 
-        features.append(feat)
+        props = feat_copy.get("properties") if isinstance(feat_copy.get("properties"), dict) else {}
+        props = dict(props)
+
+        props.setdefault("category", s.category)
+        props.setdefault("user_id", s.user_id)
+        props.setdefault("school_id", s.school_id)
+        props.setdefault("sticker_id", s.id)
+
+        feat_copy["properties"] = props
+        features.append(feat_copy)
 
     return {"type": "FeatureCollection", "features": features}

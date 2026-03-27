@@ -46,7 +46,7 @@ def import_geojson_file(file: UploadFile = File(...), db: Session = Depends(get_
 
     validation = validate_geojson(data, require_properties=False)
     if not validation.is_valid:
-        # RF_08: con errores, no altera DB
+        
         return JSONResponse(status_code=422, content=validation.model_dump())
 
     records, skipped = parse_geojson_features(data)
@@ -70,6 +70,6 @@ def export_geojson(
     # Devuelve como archivo .geojson
     content = json.dumps(fc, ensure_ascii=False).encode("utf-8")
     buf = BytesIO(content)
-
+    buf.seek(0)
     headers = {"Content-Disposition": 'attachment; filename="atlas_infancias_export.geojson"'}
     return StreamingResponse(buf, media_type="application/geo+json", headers=headers)

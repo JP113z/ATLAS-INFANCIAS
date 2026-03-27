@@ -26,7 +26,7 @@ def import_geojson_records (db: Session, records: List[Dict[str, Any]], skipped:
                     user_id=r["user_id"],
                     school_id=r["school_id"],
                     geojson=r["geojson"],
-                    # Construcción de Point(lng,lat) con SRID 4326
+                    # Construcción de Point(lng,lat) 
                     location=func.ST_SetSRID(func.ST_MakePoint(lng, lat), 4326)
                 )
                 db.add(sticker)

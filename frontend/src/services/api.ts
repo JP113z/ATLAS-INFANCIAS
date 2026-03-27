@@ -172,31 +172,55 @@ export async function getStickers(filters: StickerFilters = {}): Promise<Feature
   return handleResponse<FeatureCollection>(res);
 }
 
-export async function uploadGeoJSON(file: File): Promise<{ message: string; count: number }> {
+export async function uploadGeoJSON(
+  file: File
+): Promise<{ inserted: number; skipped: number; skipped_details?: any[]; message: string }> {
   const formData = new FormData();
   formData.append("file", file);
 
-  const res = await fetch(`${API_URL}/stickers/upload`, {
+
+  const token = getToken();
+  const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+
+  const res = await fetch(`${API_URL}/geojson/import`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${getToken()}` },
+    headers,
     body: formData,
   });
+
   return handleResponse(res);
 }
 
 export async function downloadGeoJSON(filters: StickerFilters = {}): Promise<Blob> {
   const params = new URLSearchParams();
+
+  // El backend /geojson/export solo acepta estos filtros :
   if (filters.category) params.set("category", filters.category);
-  if (filters.gender) params.set("gender", filters.gender);
-  if (filters.school_id) params.set("school_id", filters.school_id);
-  if (filters.user_id) params.set("user_id", filters.user_id);
+  if (filters.school_id) params.set("school_id", String(filters.school_id));
+  if (filters.user_id) params.set("user_id", String(filters.user_id));
+
+  params.set("download", "true");
 
   const qs = params.toString();
-  const res = await fetch(`${API_URL}/stickers/download${qs ? `?${qs}` : ""}`, {
-    headers: authHeaders(),
+
+  const token = getToken();
+  const headers: HeadersInit = {
+    Accept: "application/geo+json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+
+  const res = await fetch(`${API_URL}/geojson/export${qs ? `?${qs}` : ""}`, {
+    method: "GET",
+    headers,
   });
-  if (!res.ok) throw new Error("Error descargando GeoJSON");
-  return res.blob();
+
+  if (!res.ok) {
+    
+    const text = await res.text().catch(() => "");
+    throw new Error(text || `Error descargando GeoJSON (HTTP ${res.status})`);
+  }
+
+  return await res.blob();
 }
 
 // ─── Comentarios ───

@@ -66,7 +66,7 @@ export default function FiltersSidebar({ filters, onFiltersChange }: FiltersSide
     setUploading(true);
     try {
       const result = await api.uploadGeoJSON(file);
-      alert(`GeoJSON cargado: ${result.count} stickers`);
+      alert(`${result.message}\nInsertados: ${result.inserted}\nOmitidos: ${result.skipped}`);
       // Refrescar filtros para recargar mapa
       onFiltersChange({ ...filters });
     } catch (err: any) {
