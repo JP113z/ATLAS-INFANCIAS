@@ -20,20 +20,33 @@ export default function FiltersSidebar({ filters, onFiltersChange }: FiltersSide
   const [uploading, setUploading] = useState(false);
 
   // Cargar escuelas y usuarios para los selects
-  useEffect(() => {
-    api.getSchools().then(setSchools).catch(() => {});
-    if (user) {
-      api.getUsers().then(setUsers).catch(() => {});
-    }
-  }, [user]);
+    useEffect(() => {
+      (async () => {
+        try {
+          const data = await api.getSchools();
+          console.log("Schools:", data);
+          setSchools(data);
+        } catch (e) {
+          console.error("Error loading schools:", e);
+        }
+
+        if (user) {
+          try {
+            const dataUsers = await api.getUsers();
+            console.log("Users:", dataUsers);
+            setUsers(dataUsers);
+          } catch (e) {
+            console.error("Error loading users:", e);
+          }
+        }
+      })();
+    }, [user]);
+
 
   const updateFilter = (key: keyof StickerFilters, value: string) => {
     const next = { ...filters, [key]: value || undefined };
 
-    // Si se cambia rango manual, limpiar preset y viceversa
-    if (key === "date_from" || key === "date_to") {
-      next.date_preset = undefined;
-    }
+
     if (key === "date_preset") {
       next.date_from = undefined;
       next.date_to = undefined;
@@ -140,28 +153,20 @@ export default function FiltersSidebar({ filters, onFiltersChange }: FiltersSide
           </option>
         ))}
       </select>
-
-      {/* Rango de Fecha */}
-      <label className="label">{Icons.calendar} Rango de Fecha</label>
-      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-        <input
-          type="date"
-          className="input"
-          value={filters.date_from || ""}
-          onChange={(e) => updateFilter("date_from", e.target.value)}
-          disabled={isDisabled}
-          style={{ flex: 1 }}
-        />
-        <input
-          type="date"
-          className="input"
-          value={filters.date_to || ""}
-          onChange={(e) => updateFilter("date_to", e.target.value)}
-          disabled={isDisabled}
-          style={{ flex: 1 }}
-        />
-      </div>
-
+      {/*Rango de fechas */}
+      <label className="label">{Icons.calendar} Fecha</label>
+      <select
+        className="input"
+        style={{ marginBottom: 16 }}
+        value={filters.date_preset || ""}
+        onChange={(e) => updateFilter("date_preset", e.target.value)}
+        disabled={isDisabled}
+      >
+        <option value="">(sin filtro)</option>
+        <option value="hoy">Hoy</option>
+        <option value="ultimos_7">Últimos 7 días</option>
+        <option value="ultimos_30">Últimos 30 días</option>
+      </select>
       {/* Género */}
       <label className="label">{Icons.user} Género</label>
       <select

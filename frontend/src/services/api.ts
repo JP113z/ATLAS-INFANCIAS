@@ -125,7 +125,7 @@ export async function deleteMe(): Promise<void> {
 // ─── Usuarios (admin) ───
 
 export async function getUsers(): Promise<User[]> {
-  const res = await fetch(`${API_URL}/users`, {
+  const res = await fetch(`${API_URL}/user`, {
     headers: authHeaders(),
   });
   return handleResponse<User[]>(res);

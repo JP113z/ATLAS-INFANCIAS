@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from app.database import engine
 import app.models
+from app.routers import schools, user
 from app.routers.geojson import router as geojson_router
 
 from app.routers import stickers
@@ -12,6 +13,9 @@ from app.routers import stickers
 app = FastAPI(title="ATLAS Infancias API")
 
 app.include_router(geojson_router)
+
+app.include_router(schools.router)
+app.include_router(user.router)
 
 app.add_middleware(
     CORSMiddleware,

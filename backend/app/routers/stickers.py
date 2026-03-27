@@ -57,26 +57,7 @@ def get_stickers(db: Session = Depends(get_db), category:Optional[Category] = Qu
     if user_id is not None:
         query = query.filter(Sticker.user_id == user_id)
 
-    start_dt = None
-    end_dt = None
-
-    if date_from or date_to:
-        # Si solo mandan uno, el otro se infiere
-        if date_from:
-            dfrom = _parse_date_yyyy_mm_dd(date_from)
-        else:
-            dfrom = date(1998, 9, 30)
-
-        if date_to:
-            dto = _parse_date_yyyy_mm_dd(date_to)
-        else:
-            dto = date.today()
-
-        # [dfrom 00:00, dto 23:59.]
-        start_dt = datetime(dfrom.year, dfrom.month, dfrom.day, 0, 0, 0)
-        end_dt = datetime(dto.year, dto.month, dto.day, 23, 59, 59)
-
-    elif date_preset:
+    if date_preset:
         today = date.today()
 
         if date_preset == "hoy":
@@ -92,12 +73,10 @@ def get_stickers(db: Session = Depends(get_db), category:Optional[Category] = Qu
         start_dt = datetime(dfrom.year, dfrom.month, dfrom.day, 0, 0, 0)
         end_dt = datetime(dto.year, dto.month, dto.day, 23, 59, 59)
 
-    if start_dt and end_dt:
         query = query.filter(and_(Sticker.created_at >= start_dt, Sticker.created_at <= end_dt))
 
     rows = query.all()
 
-  
     # Construir FeatureCollection
     features = []
     for sticker, user_gender in rows:
