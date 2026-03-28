@@ -34,9 +34,8 @@ export default function RegisterPage() {
 
     try {
       await handleRegister(username, email, password, gender || undefined);
-      navigate("/mapa");
+      navigate("/login");
     } catch {
-      // El error ya se setea en AuthContext
     }
   };
 

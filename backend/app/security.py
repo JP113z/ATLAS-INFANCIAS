@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
@@ -8,7 +9,8 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import User
 
-SECRET_KEY = "joseyjoshua"
+
+SECRET_KEY = "joseyjoshua" #esta deberia ser la de .env
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 #No creo que pasen más de una hora
 
@@ -46,3 +48,4 @@ def get_current_user(
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario no existe")
     return user
+

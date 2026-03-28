@@ -70,7 +70,7 @@ export async function login(data: LoginRequest): Promise<AuthResponse> {
   localStorage.setItem(TOKEN_KEY, result.access_token);
   return result;
 }
-*/
+
 export async function login(data: LoginRequest): Promise<AuthResponse> {
   const res = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
@@ -82,6 +82,42 @@ export async function login(data: LoginRequest): Promise<AuthResponse> {
   localStorage.setItem(TOKEN_KEY, result.access_token);
   return result;
 }
+*/
+
+
+export async function loginStep1(data: LoginRequest): Promise<LoginStep1Response> {
+  const res = await fetch(`${API_URL}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  return handleResponse<LoginStep1Response>(res);
+}
+
+export async function verifyOtp(data: VerifyOtpRequest): Promise<TokenResponse> {
+  const res = await fetch(`${API_URL}/auth/2fa/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  const result = await handleResponse<TokenResponse>(res);
+  localStorage.setItem(TOKEN_KEY, result.access_token);
+  return result;
+}
+
+export async function register(data: RegisterRequest): Promise<{ message: string }> {
+  const res = await fetch(`${API_URL}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  return handleResponse<{ message: string }>(res);
+}
+
+/*
 
 export async function register(data: RegisterRequest): Promise<AuthResponse> {
   const res = await fetch(`${API_URL}/auth/register`, {
@@ -91,7 +127,7 @@ export async function register(data: RegisterRequest): Promise<AuthResponse> {
   });
   return handleResponse<AuthResponse>(res);
 }
-/*
+
 export async function register(data: RegisterRequest): Promise<User> {
   const res = await fetch(`${API_URL}/auth/register`, {
     method: "POST",
@@ -320,3 +356,18 @@ export async function getActiveVoters(code: string): Promise<{ count: number }> 
   const res = await fetch(`${API_URL}/votes/${code}/voters`);
   return handleResponse(res);
 }
+
+export type LoginStep1Response = {
+  requires_2fa: boolean;
+  challenge_id: string;
+};
+
+export type TokenResponse = {
+  access_token: string;
+  token_type: "bearer";
+};
+
+export type VerifyOtpRequest = {
+  challenge_id: string;
+  code: string;
+};
