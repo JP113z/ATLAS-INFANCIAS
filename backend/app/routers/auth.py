@@ -12,6 +12,12 @@ from app.security import hash_password, verify_password, create_access_token, ge
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+#pruebap pára usuario y contraseña
+
+#joshuaprueba@gmail.com
+#joshuaprueba de contraseña
+
+
 @router.post("/register", response_model=Token)
 def register(user: UserCreate, db: Session = Depends(get_db)):
     if db.query(User).filter(User.email == user.email).first():
@@ -31,6 +37,7 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
 
     token = create_access_token({"sub": str(new_user.id), "role": new_user.role})
     return {"access_token": token, "token_type": "bearer"}
+
 
 
 @router.post("/login", response_model=Token)
