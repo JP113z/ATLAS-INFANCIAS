@@ -51,7 +51,7 @@ def me(current_user: User = Depends(get_current_user)):
 
 @router.post("/token", response_model=Token)
 def token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    # En OAuth2, el campo se llama username aunque tú lo uses como email
+    # En OAuth2, el campo se llama username aunque se use email
     user = db.query(User).filter(User.email == form_data.username).first()
 
     if not user or not verify_password(form_data.password, user.password):
