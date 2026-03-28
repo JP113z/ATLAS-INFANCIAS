@@ -24,9 +24,11 @@ const API_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
 
 // ─── Helpers ───
 
-function getToken(): string | null {
-  return localStorage.getItem("atlas_token");
+
+export function getToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
 }
+
 
 function authHeaders(): HeadersInit {
   const token = getToken();
@@ -49,6 +51,8 @@ async function handleResponse<T>(res: Response): Promise<T> {
 }
 
 // ─── Auth ───
+
+const TOKEN_KEY = "token";
 
 export async function login(data: LoginRequest): Promise<AuthResponse> {
   // FastAPI OAuth2 espera form-data, no JSON
@@ -85,13 +89,18 @@ export async function recoverPassword(email: string): Promise<{ message: string 
   return handleResponse(res);
 }
 
-export function logout(): void {
-  localStorage.removeItem("atlas_token");
+
+export function logout() {
+  localStorage.removeItem(TOKEN_KEY);
 }
 
+
+
 export function isAuthenticated(): boolean {
-  return !!getToken();
+  return Boolean(localStorage.getItem(TOKEN_KEY));
 }
+
+
 
 // ─── Usuario actual ───
 

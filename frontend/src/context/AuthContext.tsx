@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Al montar, revisamos si hay token guardado y cargamos perfil
   useEffect(() => {
-
+/*
     // ─── DEV MODE: Comentar esto cuando el backend esté listo ───
     const DEV_MODE = true; // cambiar a false cuando tengas backend
 
@@ -66,8 +66,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     // ─── FIN DEV MODE ───
-
-    /* Si el backend ya está listo, descomenta el bloque de abajo y comenta el bloque de DEV_MODE 
+*/
+     //Si el backend ya está listo, descomenta el bloque de abajo y comenta el bloque de DEV_MODE 
     if (api.isAuthenticated()) {
       api
         .getMe()
@@ -80,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       setLoading(false);
     }
-      */
+      
   }, []);
 
   const refreshUser = useCallback(async () => {
