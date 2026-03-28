@@ -1,6 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
-
+from typing import Optional, Literal
 
 class SchoolOut(BaseModel):
     id: int
@@ -11,10 +10,3 @@ class SchoolOut(BaseModel):
         from_attributes = True
 
 
-class UserOut(BaseModel):
-    id: int
-    username: str
-    gender: Optional[str] = None
-
-    class Config:
-        from_attributes = True
