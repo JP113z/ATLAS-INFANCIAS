@@ -1,4 +1,3 @@
-
 import os
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
@@ -20,9 +19,11 @@ from app.services.email_service import send_otp_email
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-class LoginStep1Response(BaseModel):
-    requires_2fa: bool = True
-    challenge_id: str
+class LoginResponse(BaseModel):
+    requires_2fa: bool
+    challenge_id: str | None = None
+    access_token: str | None = None
+    token_type: str | None = None
 
 class VerifyOtpRequest(BaseModel):
     challenge_id: str
@@ -32,18 +33,14 @@ OTP_EXPIRE_MINUTES = int(os.getenv("OTP_EXPIRE_MINUTES", "10"))
 OTP_MAX_ATTEMPTS = int(os.getenv("OTP_MAX_ATTEMPTS", "5"))
 
 
-
-#pruebap pára usuario y contraseña
-
-#joshuaprueba@gmail.com
-#joshuaprueba de contraseña
-
-
 @router.post("/register", response_model=RegisterResponse)
 def register(user: UserCreate, db: Session = Depends(get_db)):
 
     if db.query(User).filter(User.email == user.email).first():
         raise HTTPException(status_code=400, detail="Email ya registrado")
+
+    if db.query(User).filter(User.username == user.username).first():
+        raise HTTPException(status_code=400, detail="Nombre de usuario ya registrado")
 
     new_user = User(
         username=user.username,
@@ -57,20 +54,31 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
 
-
     return {"message": "Usuario creado. Inicia sesión para recibir el código 2FA."}
 
 
-
-@router.post("/login", response_model=LoginStep1Response)
-async def login_step1(payload: dict, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+@router.post("/login", response_model=LoginResponse)
+async def login(payload: dict, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     email = payload.get("email")
     password = payload.get("password")
+
+    if not email or not password:
+        raise HTTPException(status_code=400, detail="Email y contraseña son requeridos")
 
     user = db.query(User).filter(User.email == email).first()
     if not user or not verify_password(password, user.password):
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
 
+    # Si ya está verificado, devolver token directo sin 2FA
+    if user.verified:
+        token = create_access_token({"sub": str(user.id), "role": user.role})
+        return LoginResponse(
+            requires_2fa=False,
+            access_token=token,
+            token_type="bearer",
+        )
+
+    # No verificado → enviar OTP
     code = generate_otp_code()
     ch = AuthOtpChallenge(
         user_id=user.id,
@@ -81,28 +89,13 @@ async def login_step1(payload: dict, background_tasks: BackgroundTasks, db: Sess
     db.commit()
     db.refresh(ch)
 
-    #  Enviar OTP por correo en background 
     background_tasks.add_task(send_otp_email, user.email, code)
 
-    return {"requires_2fa": True, "challenge_id": str(ch.challenge_id)}
+    return LoginResponse(
+        requires_2fa=True,
+        challenge_id=str(ch.challenge_id),
+    )
 
-
-
-@router.get("/me", response_model=UserOut)
-def me(current_user: User = Depends(get_current_user)):
-    return current_user
-
-#despues hay que quitar esto cuando ya este la app de verdad
-@router.post("/token", response_model=Token)
-def token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    # En OAuth2, el campo se llama username aunque se use email
-    user = db.query(User).filter(User.email == form_data.username).first()
-
-    if not user or not verify_password(form_data.password, user.password):
-        raise HTTPException(status_code=401, detail="Credenciales inválidas")
-
-    token = create_access_token({"sub": str(user.id), "role": user.role})
-    return {"access_token": token, "token_type": "bearer"}
 
 @router.post("/2fa/verify", response_model=Token)
 def verify_otp_step2(req: VerifyOtpRequest, db: Session = Depends(get_db)):
@@ -122,13 +115,27 @@ def verify_otp_step2(req: VerifyOtpRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Código incorrecto")
 
     ch.consumed = True
+
+    # Marcar usuario como verificado para que no pida 2FA de nuevo
+    user = db.query(User).filter(User.id == ch.user_id).first()
+    user.verified = True
     db.commit()
 
-    user = db.query(User).filter(User.id == ch.user_id).first()
     token = create_access_token({"sub": str(user.id), "role": user.role})
     return {"access_token": token, "token_type": "bearer"}
+
 
 @router.get("/me", response_model=UserOut)
 def me(current_user: User = Depends(get_current_user)):
     return current_user
 
+
+@router.post("/token", response_model=Token)
+def token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == form_data.username).first()
+
+    if not user or not verify_password(form_data.password, user.password):
+        raise HTTPException(status_code=401, detail="Credenciales inválidas")
+
+    token = create_access_token({"sub": str(user.id), "role": user.role})
+    return {"access_token": token, "token_type": "bearer"}

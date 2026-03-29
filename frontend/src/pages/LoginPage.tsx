@@ -22,10 +22,14 @@ export default function LoginPage() {
     }
 
     try {
-      await handleLogin(email, password);
-      navigate("/2fa");
+      const directLogin = await handleLogin(email, password);
+
+      if (directLogin) {
+        navigate("/mapa");
+      } else {
+        navigate("/2fa");
+      }
     } catch {
-      // El error ya se setea en AuthContext
     }
   };
 

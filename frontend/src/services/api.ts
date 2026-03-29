@@ -1,11 +1,3 @@
-/* ───────────────────────────────────────────────
-   Servicio API — ATLAS Infancias
-   
-   Centraliza todas las llamadas al backend FastAPI.
-   Ajustá las rutas si tu backend usa prefijos distintos
-   (por ejemplo /api/v1/...).
-   ─────────────────────────────────────────────── */
-
 import type {
   AuthResponse,
   LoginRequest,
@@ -22,8 +14,8 @@ import type {
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
 
-// ─── Helpers ───
 
+const TOKEN_KEY = "token";
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
@@ -50,49 +42,39 @@ async function handleResponse<T>(res: Response): Promise<T> {
   return res.json();
 }
 
-// ─── Auth ───
 
-const TOKEN_KEY = "token";
-/*
-export async function login(data: LoginRequest): Promise<AuthResponse> {
-  // FastAPI OAuth2 espera form-data, no JSON
-  const formData = new URLSearchParams();
-  formData.append("username", data.email); // OAuth2PasswordRequestForm usa "username"
-  formData.append("password", data.password);
+export type LoginResponse = {
+  requires_2fa: boolean;
+  challenge_id: string | null;
+  access_token: string | null;
+  token_type: string | null;
+};
 
-  const res = await fetch(`${API_URL}/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: formData.toString(),
-  });
+export type TokenResponse = {
+  access_token: string;
+  token_type: "bearer";
+};
 
-  const result = await handleResponse<AuthResponse>(res);
-  localStorage.setItem(TOKEN_KEY, result.access_token);
-  return result;
-}
-
-export async function login(data: LoginRequest): Promise<AuthResponse> {
-  const res = await fetch(`${API_URL}/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-
-  const result = await handleResponse<AuthResponse>(res);
-  localStorage.setItem(TOKEN_KEY, result.access_token);
-  return result;
-}
-*/
+export type VerifyOtpRequest = {
+  challenge_id: string;
+  code: string;
+};
 
 
-export async function loginStep1(data: LoginRequest): Promise<LoginStep1Response> {
+export async function loginStep1(data: LoginRequest): Promise<LoginResponse> {
   const res = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
 
-  return handleResponse<LoginStep1Response>(res);
+  const result = await handleResponse<LoginResponse>(res);
+
+  if (!result.requires_2fa && result.access_token) {
+    localStorage.setItem(TOKEN_KEY, result.access_token);
+  }
+
+  return result;
 }
 
 export async function verifyOtp(data: VerifyOtpRequest): Promise<TokenResponse> {
@@ -117,26 +99,6 @@ export async function register(data: RegisterRequest): Promise<{ message: string
   return handleResponse<{ message: string }>(res);
 }
 
-/*
-
-export async function register(data: RegisterRequest): Promise<AuthResponse> {
-  const res = await fetch(`${API_URL}/auth/register`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-  return handleResponse<AuthResponse>(res);
-}
-
-export async function register(data: RegisterRequest): Promise<User> {
-  const res = await fetch(`${API_URL}/auth/register`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-  return handleResponse<User>(res);
-}
-*/
 export async function recoverPassword(email: string): Promise<{ message: string }> {
   const res = await fetch(`${API_URL}/auth/recover`, {
     method: "POST",
@@ -158,8 +120,6 @@ export function isAuthenticated(): boolean {
 }
 
 
-
-// ─── Usuario actual ───
 
 export async function getMe(): Promise<User> {
   const res = await fetch(`${API_URL}/auth/me`, {
@@ -188,7 +148,6 @@ export async function deleteMe(): Promise<void> {
   }
 }
 
-// ─── Usuarios (admin) ───
 
 export async function getUsers(): Promise<User[]> {
   const res = await fetch(`${API_URL}/stickers/user`, {
@@ -208,7 +167,6 @@ export async function blockUser(userId: number): Promise<void> {
   }
 }
 
-// ─── Escuelas ───
 
 export async function getSchools(): Promise<School[]> {
   const res = await fetch(`${API_URL}/stickers/schools`);
@@ -216,7 +174,6 @@ export async function getSchools(): Promise<School[]> {
   return res.json();
 }
 
-// ─── Stickers (GeoJSON) ───
 
 export async function getStickers(filters: StickerFilters = {}): Promise<FeatureCollection> {
   const params = new URLSearchParams();
@@ -260,7 +217,6 @@ export async function uploadGeoJSON(
 export async function downloadGeoJSON(filters: StickerFilters = {}): Promise<Blob> {
   const params = new URLSearchParams();
 
-  // El backend /geojson/export solo acepta estos filtros :
   if (filters.category) params.set("category", filters.category);
   if (filters.school_id) params.set("school_id", String(filters.school_id));
   if (filters.user_id) params.set("user_id", String(filters.user_id));
@@ -281,7 +237,7 @@ export async function downloadGeoJSON(filters: StickerFilters = {}): Promise<Blo
   });
 
   if (!res.ok) {
-    
+
     const text = await res.text().catch(() => "");
     throw new Error(text || `Error descargando GeoJSON (HTTP ${res.status})`);
   }
@@ -289,7 +245,6 @@ export async function downloadGeoJSON(filters: StickerFilters = {}): Promise<Blo
   return await res.blob();
 }
 
-// ─── Comentarios ───
 
 export async function getComments(stickerId: number): Promise<Comment[]> {
   const res = await fetch(`${API_URL}/stickers/${stickerId}/comments`);
@@ -301,7 +256,7 @@ export async function addComment(stickerId: number, content: string): Promise<Co
   const res = await fetch(`${API_URL}/stickers/${stickerId}/comments`, {
     method: "POST",
 
-    headers: {...authHeaders(),"Content-Type": "application/json",},
+    headers: { ...authHeaders(), "Content-Type": "application/json", },
     body: JSON.stringify({ content }),
   });
 
@@ -316,7 +271,6 @@ export async function deleteComment(stickerId: number, commentId: number): Promi
   if (!res.ok) throw new Error("Error eliminando comentario");
 }
 
-// ─── Votaciones ───
 
 export async function createVoteSession(stickerId: number, question: string): Promise<VoteSession> {
   const res = await fetch(`${API_URL}/votes`, {
@@ -358,18 +312,3 @@ export async function getActiveVoters(code: string): Promise<{ count: number }> 
   const res = await fetch(`${API_URL}/votes/${code}/voters`);
   return handleResponse(res);
 }
-
-export type LoginStep1Response = {
-  requires_2fa: boolean;
-  challenge_id: string;
-};
-
-export type TokenResponse = {
-  access_token: string;
-  token_type: "bearer";
-};
-
-export type VerifyOtpRequest = {
-  challenge_id: string;
-  code: string;
-};
