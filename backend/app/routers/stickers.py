@@ -29,7 +29,7 @@ def list_schools(db: Session = Depends(get_db)):
     schools = db.query(School).order_by(School.name).all()
     return [{"id": s.id, "name": s.name, "city": s.city} for s in schools]
 
-@router.get("/users")
+@router.get("/user")
 def list_users(db: Session = Depends(get_db)):
     users = db.query(User).order_by(User.username).all()
     return [{"id": u.id, "username": u.username, "gender": u.gender} for u in users]

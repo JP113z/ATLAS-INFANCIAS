@@ -24,9 +24,11 @@ const API_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
 
 // ─── Helpers ───
 
-function getToken(): string | null {
-  return localStorage.getItem("atlas_token");
+
+export function getToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
 }
+
 
 function authHeaders(): HeadersInit {
   const token = getToken();
@@ -50,6 +52,8 @@ async function handleResponse<T>(res: Response): Promise<T> {
 
 // ─── Auth ───
 
+const TOKEN_KEY = "token";
+/*
 export async function login(data: LoginRequest): Promise<AuthResponse> {
   // FastAPI OAuth2 espera form-data, no JSON
   const formData = new URLSearchParams();
@@ -63,8 +67,65 @@ export async function login(data: LoginRequest): Promise<AuthResponse> {
   });
 
   const result = await handleResponse<AuthResponse>(res);
-  localStorage.setItem("atlas_token", result.access_token);
+  localStorage.setItem(TOKEN_KEY, result.access_token);
   return result;
+}
+
+export async function login(data: LoginRequest): Promise<AuthResponse> {
+  const res = await fetch(`${API_URL}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  const result = await handleResponse<AuthResponse>(res);
+  localStorage.setItem(TOKEN_KEY, result.access_token);
+  return result;
+}
+*/
+
+
+export async function loginStep1(data: LoginRequest): Promise<LoginStep1Response> {
+  const res = await fetch(`${API_URL}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  return handleResponse<LoginStep1Response>(res);
+}
+
+export async function verifyOtp(data: VerifyOtpRequest): Promise<TokenResponse> {
+  const res = await fetch(`${API_URL}/auth/2fa/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  const result = await handleResponse<TokenResponse>(res);
+  localStorage.setItem(TOKEN_KEY, result.access_token);
+  return result;
+}
+
+export async function register(data: RegisterRequest): Promise<{ message: string }> {
+  const res = await fetch(`${API_URL}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  return handleResponse<{ message: string }>(res);
+}
+
+/*
+
+export async function register(data: RegisterRequest): Promise<AuthResponse> {
+  const res = await fetch(`${API_URL}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  return handleResponse<AuthResponse>(res);
 }
 
 export async function register(data: RegisterRequest): Promise<User> {
@@ -75,7 +136,7 @@ export async function register(data: RegisterRequest): Promise<User> {
   });
   return handleResponse<User>(res);
 }
-
+*/
 export async function recoverPassword(email: string): Promise<{ message: string }> {
   const res = await fetch(`${API_URL}/auth/recover`, {
     method: "POST",
@@ -85,18 +146,23 @@ export async function recoverPassword(email: string): Promise<{ message: string 
   return handleResponse(res);
 }
 
-export function logout(): void {
-  localStorage.removeItem("atlas_token");
+
+export function logout() {
+  localStorage.removeItem(TOKEN_KEY);
 }
 
+
+
 export function isAuthenticated(): boolean {
-  return !!getToken();
+  return Boolean(localStorage.getItem(TOKEN_KEY));
 }
+
+
 
 // ─── Usuario actual ───
 
 export async function getMe(): Promise<User> {
-  const res = await fetch(`${API_URL}/users/me`, {
+  const res = await fetch(`${API_URL}/auth/me`, {
     headers: authHeaders(),
   });
   return handleResponse<User>(res);
@@ -125,7 +191,7 @@ export async function deleteMe(): Promise<void> {
 // ─── Usuarios (admin) ───
 
 export async function getUsers(): Promise<User[]> {
-  const res = await fetch(`${API_URL}/user`, {
+  const res = await fetch(`${API_URL}/stickers/user`, {
     headers: authHeaders(),
   });
   return handleResponse<User[]>(res);
@@ -145,7 +211,7 @@ export async function blockUser(userId: number): Promise<void> {
 // ─── Escuelas ───
 
 export async function getSchools(): Promise<School[]> {
-  const res = await fetch(`${API_URL}/schools`);
+  const res = await fetch(`${API_URL}/stickers/schools`);
   if (!res.ok) return [];
   return res.json();
 }
@@ -290,3 +356,18 @@ export async function getActiveVoters(code: string): Promise<{ count: number }> 
   const res = await fetch(`${API_URL}/votes/${code}/voters`);
   return handleResponse(res);
 }
+
+export type LoginStep1Response = {
+  requires_2fa: boolean;
+  challenge_id: string;
+};
+
+export type TokenResponse = {
+  access_token: string;
+  token_type: "bearer";
+};
+
+export type VerifyOtpRequest = {
+  challenge_id: string;
+  code: string;
+};

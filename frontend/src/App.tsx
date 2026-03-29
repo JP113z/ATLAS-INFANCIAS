@@ -13,6 +13,7 @@ import VotingQuestionPage from "./pages/VotingQuestionPage";
 import VotingResultsPage from "./pages/VotingResultsPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
 import AdminVotingQRPage from "./pages/AdminVotingQRPage";
+import TwoFactorPage from "./pages/TwoFactorPage";
 
 // Styles
 import "./styles/global.css";
@@ -84,7 +85,24 @@ function GuestRoute({ children }: { children: React.ReactNode }) {
 
   return <>{children}</>;
 }
+function TwoFactorRoute({ children }: { children: React.ReactNode }) {
+  const { loading, challengeId } = useAuth();
 
+  if (loading) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div className="spinner" />
+      </div>
+    );
+  }
+
+  // Si no hay challenge pendiente, no debería entrar a /2fa
+  if (!challengeId) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+}
 function AppRoutes() {
   return (
     <Routes>
@@ -105,6 +123,15 @@ function AppRoutes() {
           </GuestRoute>
         }
       />
+      <Route
+        path="/2fa"
+        element={
+          <TwoFactorRoute>
+              <TwoFactorPage />
+           </TwoFactorRoute>
+          }
+/>
+
       <Route
         path="/registro"
         element={

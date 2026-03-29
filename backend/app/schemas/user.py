@@ -26,3 +26,7 @@ class UserOut(BaseModel):
 
 class Config:
     from_attributes = True
+
+    
+class RegisterResponse(BaseModel):
+    message: str

@@ -23,7 +23,7 @@ export default function LoginPage() {
 
     try {
       await handleLogin(email, password);
-      navigate("/mapa");
+      navigate("/2fa");
     } catch {
       // El error ya se setea en AuthContext
     }
