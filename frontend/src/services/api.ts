@@ -300,9 +300,11 @@ export async function getComments(stickerId: number): Promise<Comment[]> {
 export async function addComment(stickerId: number, content: string): Promise<Comment> {
   const res = await fetch(`${API_URL}/stickers/${stickerId}/comments`, {
     method: "POST",
-    headers: authHeaders(),
+
+    headers: {...authHeaders(),"Content-Type": "application/json",},
     body: JSON.stringify({ content }),
   });
+
   return handleResponse<Comment>(res);
 }
 

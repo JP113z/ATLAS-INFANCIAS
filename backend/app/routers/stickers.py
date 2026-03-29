@@ -1,14 +1,20 @@
 
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 from datetime import datetime, timedelta, date
 import copy
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 
 from app.database import get_db
 from app.models import Sticker, User, School
+
+from app.models.comments import StickerComment
+
+from app.security import get_current_user 
+
+from app.schemas.comments import CommentCreate, CommentOut
 
 
 router = APIRouter(prefix="/stickers", tags=["stickers"])
@@ -95,3 +101,81 @@ def get_stickers(db: Session = Depends(get_db), category:Optional[Category] = Qu
         features.append(feature)
 
     return {"type": "FeatureCollection", "features": features}
+
+@router.get("/{sticker_id}/comments", response_model=List[CommentOut])
+def list_comments(sticker_id: int, db: Session = Depends(get_db)):
+    rows = (
+        db.query(StickerComment, User.username)
+        .join(User, User.id == StickerComment.user_id)
+        .filter(StickerComment.sticker_id == sticker_id)
+        .order_by(StickerComment.created_at.asc())
+        .all()
+    )
+
+    return [
+        CommentOut(
+            id=c.id,
+            sticker_id=c.sticker_id,
+            user_id=c.user_id,
+            username=username,
+            content=c.content,
+            created_at=c.created_at,
+        )
+        for c, username in rows
+    ]
+
+
+@router.post("/{sticker_id}/comments", response_model=CommentOut, status_code=status.HTTP_201_CREATED)
+def add_comment(
+    sticker_id: int,
+    payload: CommentCreate,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    content = payload.content.strip()
+    if not content:
+        raise HTTPException(status_code=400, detail="Contenido vacío")
+
+    comment = StickerComment(
+        sticker_id=sticker_id,
+        user_id=user.id,
+        content=content,
+    )
+
+    db.add(comment)
+    db.commit()
+    db.refresh(comment)
+
+    return CommentOut(
+        id=comment.id,
+        sticker_id=comment.sticker_id,
+        user_id=comment.user_id,
+        username=user.username,
+        content=comment.content,
+        created_at=comment.created_at,
+    )
+
+
+@router.delete("/{sticker_id}/comments/{comment_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_comment(
+    sticker_id: int,
+    comment_id: int,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    comment = (
+        db.query(StickerComment)
+        .filter(StickerComment.id == comment_id, StickerComment.sticker_id == sticker_id)
+        .first()
+    )
+
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comentario no encontrado")
+
+    # Regla: solo admin
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Solo admin puede eliminar comentarios")
+
+    db.delete(comment)
+    db.commit()
+    return
