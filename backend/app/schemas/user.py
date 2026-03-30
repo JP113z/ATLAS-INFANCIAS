@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field 
 from typing import Optional, Literal
 
 Gender = Literal["masculino", "femenino", "prefiero_no_decir"]
@@ -30,3 +30,11 @@ class UserOut(BaseModel):
     
 class RegisterResponse(BaseModel):
     message: str
+
+    
+class UpdateUsernameRequest(BaseModel):
+    username: str = Field(min_length=3, max_length=30)
+
+class UpdatePasswordRequest(BaseModel):
+    current_password: str = Field(min_length=6, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)

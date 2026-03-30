@@ -312,3 +312,26 @@ export async function getActiveVoters(code: string): Promise<{ count: number }> 
   const res = await fetch(`${API_URL}/votes/${code}/voters`);
   return handleResponse(res);
 }
+
+export async function updateMyUsername(username: string): Promise<{ message: string; username: string }> {
+  const res = await fetch(`${API_URL}/user/me/username`, {
+    method: "PATCH",
+    headers: authHeaders(),
+    body: JSON.stringify({ username }),
+  });
+
+  return handleResponse(res);
+}
+
+export async function updateMyPassword(
+  current_password: string,
+  new_password: string
+): Promise<{ message: string }> {
+  const res = await fetch(`${API_URL}/user/me/password`, {
+    method: "PATCH",
+    headers: authHeaders(),
+    body: JSON.stringify({ current_password, new_password }),
+  });
+
+  return handleResponse(res);
+}

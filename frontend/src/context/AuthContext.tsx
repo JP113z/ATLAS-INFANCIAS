@@ -23,6 +23,8 @@ interface AuthState {
   handleLogin: (email: string, password: string) => Promise<boolean>;
 
   handleVerifyOtp: (code: string) => Promise<void>;
+  handleUpdateUsername: (username: string) => Promise<void>;
+  handleUpdatePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 
   handleRegister: (
     username: string,
@@ -79,6 +81,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
     }
   }, []);
+
+  const handleUpdateUsername = useCallback(
+  async (username: string) => {
+    setError(null);
+    setLoading(true);
+
+    try {
+      await api.updateMyUsername(username);
+      await refreshUser(); // para que el UI muestre el nuevo username
+    } catch (err: any) {
+      setError(err.message || "Error al actualizar el nombre de usuario");
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  },
+  [refreshUser]
+);
+
+const handleUpdatePassword = useCallback(
+  async (currentPassword: string, newPassword: string) => {
+    setError(null);
+    setLoading(true);
+
+    try {
+      await api.updateMyPassword(currentPassword, newPassword);
+
+
+    } catch (err: any) {
+      setError(err.message || "Error al actualizar la contraseña");
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  },
+  []
+);
 
   const handleLogin = useCallback(async (email: string, password: string): Promise<boolean> => {
     setError(null);
@@ -182,6 +221,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         challengeId,
         pendingEmail,
         cancel2FA,
+        handleUpdateUsername,
+        handleUpdatePassword,
       }}
     >
       {children}
