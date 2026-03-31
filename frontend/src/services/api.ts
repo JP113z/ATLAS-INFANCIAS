@@ -138,16 +138,15 @@ export async function updateMe(data: UserUpdate): Promise<User> {
 }
 
 export async function deleteMe(): Promise<void> {
-  const res = await fetch(`${API_URL}/users/me`, {
+  const res = await fetch(`${API_URL}/user/me`, {
     method: "DELETE",
     headers: authHeaders(),
   });
-  if (!res.ok) {
+  if(!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.detail || "Error eliminando cuenta");
   }
 }
-
 
 export async function getUsers(): Promise<User[]> {
   const res = await fetch(`${API_URL}/stickers/user`, {
