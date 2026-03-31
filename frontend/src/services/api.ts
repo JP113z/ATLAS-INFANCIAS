@@ -335,3 +335,20 @@ export async function updateMyPassword(
 
   return handleResponse(res);
 }
+export async function requestEmailChange(new_email: string, current_password: string): Promise<{ message: string; challenge_id: string; pending_email: string }> {
+  const res = await fetch(`${API_URL}/user/me/email/request`, {
+    method: "PATCH",
+    headers: authHeaders(),
+    body: JSON.stringify({ new_email, current_password }),
+  });
+  return handleResponse(res);
+}
+
+export async function confirmEmailChange(challenge_id: string, code: string): Promise<{ message: string; email: string }> {
+  const res = await fetch(`${API_URL}/user/me/email/confirm`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ challenge_id, code }),
+  });
+  return handleResponse(res);
+}

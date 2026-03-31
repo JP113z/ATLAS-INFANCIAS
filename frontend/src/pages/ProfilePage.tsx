@@ -7,7 +7,7 @@ import * as api from "../services/api";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
-  const { user, handleLogout, refreshUser,  handleUpdateUsername, handleUpdatePassword } = useAuth();
+  const { user, handleLogout, refreshUser,  handleUpdateUsername, handleUpdatePassword, handleRequestEmailChange, handleConfirmEmailChange, emailChangeChallengeId, pendingNewEmail } = useAuth();
 
   const [editing, setEditing] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -16,24 +16,61 @@ export default function ProfilePage() {
   const [error, setError] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState(""); 
+  
+  const [emailPassword, setEmailPassword] = useState("");
+  const [otp, setOtp] = useState("");
+
   if (!user) {
     navigate("/login");
     return null;
   }
 
-  const startEdit = (field: string, currentValue: string) => {
-    setEditing(field);
+  const resetMessages = () => {
     setSuccess("");
     setError("");
+  };
 
+  const startEdit = (field: string, currentValue: string) => {
+    setEditing(field);
+    
+    resetMessages();
+
+  
+
+
+    // Reset campos según lo que se edita
     if (field === "password") {
       setCurrentPassword("");
       setNewPassword("");
-      setEditValue(""); 
-    } else {
-      setEditValue(currentValue);
+      setEditValue("");
+      return;
     }
+
+    if (field === "email") {
+      setEditValue(currentValue); // por defecto muestra el email actual 
+      setEmailPassword("");
+      setOtp("");
+      return;
+    }
+
+    // username u otros campos simples
+    setEditValue(currentValue);
+
+    
     };
+    
+  const cancelEdit = () => {
+    setEditing(null);
+    resetMessages();
+    setSaving(false);
+
+    // Limpieza opcional
+    setCurrentPassword("");
+    setNewPassword("");
+    setEmailPassword("");
+    setOtp("");
+  };
+
   const saveEdit = async () => {
     setSaving(true);
     setError("");
@@ -65,7 +102,40 @@ export default function ProfilePage() {
         return;
       }
 
-      setError("Por ahora solo username y contraseña");
+
+      // Email
+      if (editing === "email") {
+        // solicitar OTP si aún no hay challenge
+        if (!emailChangeChallengeId) {
+          const nextEmail = editValue.trim();
+          if (!nextEmail) {
+            setError("Debes ingresar el nuevo correo");
+            return;
+          }
+          if (!emailPassword.trim()) {
+            setError("Debes ingresar tu contraseña actual para cambiar el correo");
+            return;
+          }
+
+          await handleRequestEmailChange(nextEmail, emailPassword);
+          setSuccess("Te enviamos un código al nuevo correo. Ingresa el OTP para confirmar.");
+          return; 
+        }
+
+        // confirmar OTP si ya hay challenge
+        if (!otp.trim()) {
+          setError("Ingresa el código OTP");
+          return;
+        }
+
+        await handleConfirmEmailChange(otp.trim());
+        await refreshUser(); 
+        setEditing(null);
+        setEmailPassword("");
+        setOtp("");
+        setSuccess("Correo actualizado correctamente");
+        return;
+      }
     } catch (err: any) {
       setError(err.message || "Error al guardar");
     } finally {
@@ -101,79 +171,123 @@ export default function ProfilePage() {
           {success && <div className="alert alert-success">{success}</div>}
           {error && <div className="alert alert-error">{error}</div>}
 
-          {fields.map((f) => (
-            <div key={f.key} className="card-white" style={{ marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ flex: 1 }}>
-                <div className="label" style={{ marginBottom: 0 }}>
-                  {f.icon} {f.label}
-                </div>
-                {editing === f.key ? (
-                  <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-          {editing === f.key ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
-              {f.key === "password" ? (
+{fields.map((f) => (
+  <div
+    key={f.key}
+    className="card-white"
+    style={{
+      marginBottom: 12,
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+    }}
+  >
+    <div style={{ flex: 1 }}>
+      <div className="label" style={{ marginBottom: 0 }}>
+        {f.icon} {f.label}
+      </div>
+
+      {editing === f.key ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+          {/* PASSWORD */}
+          {f.key === "password" && (
+            <>
+              <input
+                className="input"
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Contraseña actual"
+                autoFocus
+              />
+              <input
+                className="input"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Nueva contraseña"
+              />
+            </>
+          )}
+
+          {/* USERNAME */}
+          {f.key === "username" && (
+            <input
+              className="input"
+              type="text"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              placeholder="Nuevo username"
+              autoFocus
+            />
+          )}
+
+          {/* EMAIL */}
+          {f.key === "email" && (
+            <>
+              {!emailChangeChallengeId ? (
                 <>
                   <input
                     className="input"
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    placeholder="Contraseña actual"
+                    type="email"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    placeholder="Nuevo correo"
                     autoFocus
                   />
                   <input
                     className="input"
                     type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Nueva contraseña"
+                    value={emailPassword}
+                    onChange={(e) => setEmailPassword(e.target.value)}
+                    placeholder="Contraseña actual"
                   />
                 </>
               ) : (
-                <input
-                  className="input"
-                  type="text"
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  autoFocus
-                  style={{ flex: 1 }}
-                />
+                <>
+                  <div style={{ fontSize: 13, color: "var(--color-text-secondary)" }}>
+                    Código enviado a: <b>{pendingNewEmail ?? "tu nuevo correo"}</b>
+                  </div>
+                  <input
+                    className="input"
+                    type="text"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    placeholder="Código OTP"
+                    autoFocus
+                  />
+                </>
               )}
-
-              <div style={{ display: "flex", gap: 8 }}>
-                <button className="btn btn-primary btn-sm" onClick={saveEdit} disabled={saving}>
-                  {saving ? "..." : "Guardar"}
-                </button>
-                <button className="btn btn-outline btn-sm" onClick={() => setEditing(null)}>
-                  Cancelar
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div style={{ fontSize: 15, color: "var(--color-text)", marginTop: 4, paddingLeft: 20 }}>
-              {f.value}
-            </div>
+            </>
           )}
-                    <button className="btn btn-primary btn-sm" onClick={saveEdit} disabled={saving}>
-                      {saving ? "..." : "Guardar"}
-                    </button>
-                    <button className="btn btn-outline btn-sm" onClick={() => setEditing(null)}>
-                      Cancelar
-                    </button>
-                  </div>
-                ) : (
-                  <div style={{ fontSize: 15, color: "var(--color-text)", marginTop: 4, paddingLeft: 20 }}>
-                    {f.value}
-                  </div>
-                )}
-              </div>
-              {editing !== f.key && (
-                <a onClick={() => startEdit(f.key, f.value)} className="link" style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 14, flexShrink: 0 }}>
-                  {Icons.edit} Editar
-                </a>
-              )}
-            </div>
-          ))}
+
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btn btn-primary btn-sm" onClick={saveEdit} disabled={saving}>
+              {saving ? "..." : "Guardar"}
+            </button>
+            <button className="btn btn-outline btn-sm" onClick={cancelEdit} disabled={saving}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ fontSize: 15, color: "var(--color-text)", marginTop: 4, paddingLeft: 20 }}>
+          {f.value}
+        </div>
+      )}
+    </div>
+
+    {editing !== f.key && (
+      <a
+        onClick={() => startEdit(f.key, f.value)}
+        className="link"
+        style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 14, flexShrink: 0 }}
+      >
+        {Icons.edit} Editar
+      </a>
+    )}
+  </div>
+))}
 
           <div style={{ fontSize: 14, color: "var(--color-text-secondary)", marginTop: 16 }}>
             <div>Rol: {user.role === "admin" ? "Administrador" : "Usuario"}</div>

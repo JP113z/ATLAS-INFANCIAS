@@ -25,6 +25,13 @@ interface AuthState {
   handleVerifyOtp: (code: string) => Promise<void>;
   handleUpdateUsername: (username: string) => Promise<void>;
   handleUpdatePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  
+  handleRequestEmailChange: (newEmail: string, currentPassword: string) => Promise<void>;
+  handleConfirmEmailChange: (code: string) => Promise<void>;
+
+
+  emailChangeChallengeId: string | null;
+  pendingNewEmail: string | null;
 
   handleRegister: (
     username: string,
@@ -59,6 +66,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [requires2FA, setRequires2FA] = useState(false);
   const [challengeId, setChallengeId] = useState<string | null>(null);
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+
+  const [emailChangeChallengeId, setEmailChangeChallengeId] = useState<string | null>(null);
+  const [pendingNewEmail, setPendingNewEmail] = useState<string | null>(null);
 
   useEffect(() => {
     if (api.isAuthenticated()) {
@@ -99,6 +109,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   },
   [refreshUser]
 );
+
+const handleRequestEmailChange = useCallback(async (newEmail: string, currentPassword: string) => {
+  setError(null);
+  setLoading(true);
+  try {
+    const resp = await api.requestEmailChange(newEmail, currentPassword);
+    setEmailChangeChallengeId(resp.challenge_id);
+    setPendingNewEmail(resp.pending_email);
+  } catch (err: any) {
+    setError(err.message || "No se pudo solicitar el cambio de correo");
+    throw err;
+  } finally {
+    setLoading(false);
+  }
+}, []);
+
+const handleConfirmEmailChange = useCallback(async (code: string) => {
+  if (!emailChangeChallengeId) {
+    const e = new Error("No hay solicitud de cambio de correo pendiente.");
+    setError(e.message);
+    throw e;
+  }
+
+  setError(null);
+  setLoading(true);
+  try {
+    await api.confirmEmailChange(emailChangeChallengeId, code);
+    setEmailChangeChallengeId(null);
+    setPendingNewEmail(null);
+    await refreshUser();
+  } catch (err: any) {
+    setError(err.message || "Código inválido o expirado");
+    throw err;
+  } finally {
+    setLoading(false);
+  }
+}, [emailChangeChallengeId, refreshUser]);
 
 const handleUpdatePassword = useCallback(
   async (currentPassword: string, newPassword: string) => {
@@ -223,6 +270,10 @@ const handleUpdatePassword = useCallback(
         cancel2FA,
         handleUpdateUsername,
         handleUpdatePassword,
+        handleRequestEmailChange,
+        handleConfirmEmailChange,
+        emailChangeChallengeId,
+        pendingNewEmail,
       }}
     >
       {children}

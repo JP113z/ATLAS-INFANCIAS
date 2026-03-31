@@ -1,12 +1,22 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app import models
 from app.schemas import user as user_schema
-from app.schemas.user import UpdateUsernameRequest, UpdatePasswordRequest
+from app.schemas.user import UpdateUsernameRequest, UpdatePasswordRequest, EmailChangeRequest, EmailChangeConfirm
 from app.security import verify_password, hash_password, get_current_user
 
+from app.models.auth_otp import AuthOtpChallenge
+
+from app.otp import generate_otp_code, hash_otp, verify_otp
+
+from app.services.email_service import send_otp_email
+
+from datetime import datetime, timedelta
+import os
+OTP_EXPIRE_MINUTES = int(os.getenv("OTP_EXPIRE_MINUTES", "10"))
+OTP_MAX_ATTEMPTS = int(os.getenv("OTP_MAX_ATTEMPTS", "5"))
 router = APIRouter(prefix="/user", tags=["user"])
 
 
@@ -67,3 +77,78 @@ def update_password(
     db.commit()
 
     return {"message": "Contraseña actualizada correctamente"}
+
+@router.patch("/me/email/request")
+def request_email_change(
+    payload: EmailChangeRequest,
+    background_task: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    new_email = payload.new_email.lower().strip()
+
+    #Verificacion de la contraseña actual
+    if not verify_password(payload.current_password, current_user.password):
+        raise HTTPException(status_code=401, detail = "contraseña incorrecta")
+    # Verifica que el correo no este en uso
+    exists = db.query(models.User).filter(models.User.email == new_email).first()
+    if exists:
+        raise HTTPException(status_code = 409, detail = "Ese correo ya existe")
+    #Guarda correo pendiente 
+    current_user.pending_email = new_email
+    db.commit()
+
+    #Genera OTP
+    code = generate_otp_code()
+    ch = AuthOtpChallenge(user_id = current_user.id, code_hash = hash_otp(code), expires_at = datetime.utcnow() + timedelta(minutes= OTP_EXPIRE_MINUTES),)
+    db.add(ch)
+    db.commit()
+    db.refresh(ch)
+
+    background_task.add_task(send_otp_email, new_email, code)
+    return {
+        "message" : "Te enviamos un codigo al nuevo correo para confirmar el cambio",
+        "challenge_id": str(ch.challenge_id),
+        "pending_ email" : new_email
+    }
+
+@router.post("/me/email/confirm")
+def confirm_email_change(
+    payload: EmailChangeConfirm,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),        
+    ):
+        if not current_user.pending_email:
+            raise HTTPException( status_code = 400, detail = "No hay un cambio de correo pendiente")
+        ch = db.query(AuthOtpChallenge).filter(
+            AuthOtpChallenge.challenge_id == payload.challenge_id,
+            AuthOtpChallenge.user_id == current_user.id
+        ). first()
+
+
+        if not ch:
+            raise HTTPException(status_code=400, detail="challenge_id inválido")
+        if ch.consumed:
+            raise HTTPException(status_code=400, detail="Este código ya fue usado")
+        if ch.attempts >= OTP_MAX_ATTEMPTS:
+            raise HTTPException(status_code=400, detail="Demasiados intentos")
+        if datetime.utcnow() > ch.expires_at:
+            raise HTTPException(status_code=400, detail="Codigo expirado")
+        
+        if not verify_otp(payload.code, ch.code_hash):
+            ch.attempts += 1
+            db.commit()
+            raise HTTPException(status_code = 400, detail = "Codigo Incorrecto")
+        #marcar como consumido 
+        ch.consumed = True
+        
+        current_user.email = current_user.pending_email
+        current_user.pending_email = None
+        current_user.verified = True
+
+        db.commit()
+        db.refresh(current_user)
+        return{
+            "message" : "Correo actualizado correctamente",
+            "email": current_user.email
+        }

@@ -38,3 +38,11 @@ class UpdateUsernameRequest(BaseModel):
 class UpdatePasswordRequest(BaseModel):
     current_password: str = Field(min_length=6, max_length=128)
     new_password: str = Field(min_length=8, max_length=128)
+
+class EmailChangeRequest(BaseModel):
+    new_email: EmailStr
+    current_password: str = Field(min_lenght = 6, max_length = 128)
+
+class EmailChangeConfirm(BaseModel):
+    challenge_id : str
+    code: str = Field(min_lenght = 4, max_length = 10)

@@ -16,3 +16,4 @@ class User(Base):
     verified = Column(Boolean, default=False)
 
     created_at = Column(DateTime(timezone=False), server_default=func.now())
+    pending_email = Column(String(255), nullable = True)
