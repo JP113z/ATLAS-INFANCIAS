@@ -33,18 +33,21 @@ export default function AdminUsersPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleBlock = async (userId: number) => {
-    if (!confirm("¿Estás seguro de que quieres bloquear a este usuario?")) return;
-    try {
-      await api.blockUser(userId);
-      // Recargar la lista
+
+
+  const handleToggleBlock = async (u: User) => {
+    const action = u.blocked ? "desbloquear" : "Bloquear";
+    if (!confirm(`¿Estás seguro de que quieres ${action} a este usuario?`)) return;
+    try { 
+      await api.blockUser(u.id, !u.blocked);
       const updated = await api.getUsers();
       setUsers(updated);
-    } catch (err: any) {
-      alert("Error: " + err.message);
-    }
-  };
+      } catch (err:any) {
+        alert("Error: " + err.message);
 
+      }
+  };
+  
   // Filtrar y paginar
   const filtered = users.filter((u) =>
     u.username.toLowerCase().includes(search.toLowerCase()) ||
@@ -59,6 +62,11 @@ export default function AdminUsersPage() {
     setPage(1);
   }, [search]);
 
+  useEffect(() => {
+  console.log("USERS FROM API:", users);
+}, [users]);
+
+  
   if (loading) {
     return (
       <PageLayout>
@@ -106,9 +114,15 @@ export default function AdminUsersPage() {
                     </div>
                   </div>
                 </div>
-                <button className="btn btn-danger btn-sm" onClick={() => handleBlock(u.id)} style={{ flexShrink: 0 }}>
-                  Bloquear
-                </button>
+
+              <button
+                className={`btn btn-sm ${u.blocked ? "btn-outline" : "btn-danger"}`}
+                onClick={() => handleToggleBlock(u)}
+                style={{ flexShrink: 0 }}
+              >
+                {u.blocked ? "Desbloquear" : "Bloquear"}
+              </button>
+
               </div>
             ))
           )}

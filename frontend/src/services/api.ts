@@ -155,16 +155,16 @@ export async function getUsers(): Promise<User[]> {
   return handleResponse<User[]>(res);
 }
 
-export async function blockUser(userId: number): Promise<void> {
-  const res = await fetch(`${API_URL}/users/${userId}/block`, {
+
+export async function blockUser(userId: number, blocked: boolean) {
+  const res = await fetch(`${API_URL}/auth/users/${userId}/block`, {   // 👈 /auth
     method: "PUT",
     headers: authHeaders(),
+    body: JSON.stringify({ blocked }),
   });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail || "Error bloqueando usuario");
-  }
+  return handleResponse<{ ok: boolean; blocked: boolean }>(res);
 }
+
 
 
 export async function getSchools(): Promise<School[]> {

@@ -15,5 +15,7 @@ class User(Base):
     role = Column(String(20), default="user")
     verified = Column(Boolean, default=False)
 
+    blocked = Column(Boolean, default=False, nullable=False)  
+
     created_at = Column(DateTime(timezone=False), server_default=func.now())
     pending_email = Column(String(255), nullable = True)

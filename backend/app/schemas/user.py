@@ -24,6 +24,7 @@ class UserOut(BaseModel):
     gender: Optional[str] = None
     role: str
     verified: bool
+    blocked: bool
 
     class Config:
         from_attributes = True
@@ -46,3 +47,4 @@ class EmailChangeRequest(BaseModel):
 class EmailChangeConfirm(BaseModel):
     challenge_id : str
     code: str = Field(min_lenght = 4, max_length = 10)
+

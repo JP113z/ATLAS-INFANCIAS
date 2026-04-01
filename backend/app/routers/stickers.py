@@ -38,7 +38,18 @@ def list_schools(db: Session = Depends(get_db)):
 @router.get("/user")
 def list_users(db: Session = Depends(get_db)):
     users = db.query(User).order_by(User.username).all()
-    return [{"id": u.id, "username": u.username, "gender": u.gender} for u in users]
+    return [
+        {
+            "id": u.id,
+            "username": u.username,
+            "email": u.email,
+            "gender": u.gender,
+            "role": u.role,
+            "verified": u.verified,
+            "blocked": u.blocked,  
+        }
+        for u in users
+    ]
 
 @router.get("")
 def get_stickers(db: Session = Depends(get_db), category:Optional[Category] = Query(default = None), 

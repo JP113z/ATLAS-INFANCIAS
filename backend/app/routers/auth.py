@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from app.database import get_db
 from app.models import User
 from app.schemas.user import UserCreate, Token, UserOut, RegisterResponse
-from app.security import hash_password, verify_password, create_access_token, get_current_user
+from app.security import hash_password, verify_password, create_access_token, get_current_user, require_admin
 
 from app.models.auth_otp import AuthOtpChallenge
 from app.otp import generate_otp_code, hash_otp, verify_otp
@@ -28,6 +28,10 @@ class LoginResponse(BaseModel):
 class VerifyOtpRequest(BaseModel):
     challenge_id: str
     code: str
+
+
+class BlockUserRequest(BaseModel):
+    blocked: bool
 
 OTP_EXPIRE_MINUTES = int(os.getenv("OTP_EXPIRE_MINUTES", "10"))
 OTP_MAX_ATTEMPTS = int(os.getenv("OTP_MAX_ATTEMPTS", "5"))
@@ -68,6 +72,9 @@ async def login(payload: dict, background_tasks: BackgroundTasks, db: Session = 
     user = db.query(User).filter(User.email == email).first()
     if not user or not verify_password(password, user.password):
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
+
+    if user.blocked:
+        raise HTTPException(status_code = 403, detail = " Su cuenta está bloqueada. Por favor contacte al administrador de Atlas Infancias.")
 
     # Si ya está verificado, devolver token directo sin 2FA
     if user.verified:
@@ -139,3 +146,22 @@ def token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 
     token = create_access_token({"sub": str(user.id), "role": user.role})
     return {"access_token": token, "token_type": "bearer"}
+
+
+@router.put("/users/{user_id}/block")
+def set_user_block(
+    user_id: int,
+    req: BlockUserRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    user.blocked = req.blocked
+    db.commit()
+    db.refresh(user)
+
+    return {"ok": True, "blocked": user.blocked}
+

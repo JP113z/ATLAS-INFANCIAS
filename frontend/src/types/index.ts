@@ -28,6 +28,7 @@ export interface User {
   gender?: string | null;
   role: "user" | "admin";
   verified: boolean;
+  blocked: boolean;
   created_at?: string;
 }
 
