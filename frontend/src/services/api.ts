@@ -108,6 +108,15 @@ export async function recoverPassword(email: string): Promise<{ message: string 
   return handleResponse(res);
 }
 
+export async function resetPassword(token: string, new_password: string): Promise<{ message: string }> {
+  const res = await fetch(`${API_URL}/auth/recover/reset`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, new_password }),
+  });
+  return handleResponse(res);
+}
+
 
 export function logout() {
   localStorage.removeItem(TOKEN_KEY);
