@@ -72,8 +72,10 @@ def update_password(
             detail="La nueva contraseña no puede ser igual a la anterior"
         )
 
-    # Guardar hash nuevo
-    current_user.password = hash_password(payload.new_password)
+    # Re-cargar el usuario desde esta sesión para garantizar que SQLAlchemy
+    # registre el cambio y lo incluya en el commit
+    user = db.query(models.User).filter(models.User.id == current_user.id).first()
+    user.password = hash_password(payload.new_password)
     db.commit()
 
     return {"message": "Contraseña actualizada correctamente"}

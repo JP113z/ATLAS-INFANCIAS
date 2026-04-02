@@ -11,8 +11,9 @@ from app.schemas.user import UserCreate, Token, UserOut, RegisterResponse
 from app.security import hash_password, verify_password, create_access_token, get_current_user, require_admin
 
 from app.models.auth_otp import AuthOtpChallenge
+from app.models.password_reset import PasswordResetToken
 from app.otp import generate_otp_code, hash_otp, verify_otp
-from app.services.email_service import send_otp_email
+from app.services.email_service import send_otp_email, send_reset_email
 
 
 
@@ -35,6 +36,16 @@ class BlockUserRequest(BaseModel):
 
 OTP_EXPIRE_MINUTES = int(os.getenv("OTP_EXPIRE_MINUTES", "10"))
 OTP_MAX_ATTEMPTS = int(os.getenv("OTP_MAX_ATTEMPTS", "5"))
+RESET_EXPIRE_MINUTES = int(os.getenv("RESET_EXPIRE_MINUTES", "30"))
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
+
+class RecoverRequest(BaseModel):
+    email: str
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
 
 
 @router.post("/register", response_model=RegisterResponse)
@@ -146,6 +157,68 @@ def token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 
     token = create_access_token({"sub": str(user.id), "role": user.role})
     return {"access_token": token, "token_type": "bearer"}
+
+
+@router.post("/recover")
+async def recover_password(
+    req: RecoverRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    user = db.query(User).filter(User.email == req.email.lower().strip()).first()
+
+    # Respuesta genérica para no revelar si el correo existe
+    generic_response = {"message": "Si ese correo está registrado, recibirás un enlace en breve."}
+
+    if not user:
+        return generic_response
+
+    # Invalidar tokens anteriores pendientes del mismo usuario
+    db.query(PasswordResetToken).filter(
+        PasswordResetToken.user_id == user.id,
+        PasswordResetToken.consumed == False,
+    ).update({"consumed": True})
+    db.commit()
+
+    reset_token = PasswordResetToken(
+        user_id=user.id,
+        expires_at=datetime.utcnow() + timedelta(minutes=RESET_EXPIRE_MINUTES),
+    )
+    db.add(reset_token)
+    db.commit()
+    db.refresh(reset_token)
+
+    reset_url = f"{FRONTEND_URL}/recuperar/nueva-contrasena?token={reset_token.token}"
+    background_tasks.add_task(send_reset_email, user.email, reset_url)
+
+    return generic_response
+
+
+@router.post("/recover/reset")
+def reset_password(req: ResetPasswordRequest, db: Session = Depends(get_db)):
+    reset_token = db.query(PasswordResetToken).filter(
+        PasswordResetToken.token == req.token
+    ).first()
+
+    if not reset_token:
+        raise HTTPException(status_code=400, detail="Enlace inválido")
+    if reset_token.consumed:
+        raise HTTPException(status_code=400, detail="Este enlace ya fue usado")
+    if datetime.utcnow() > reset_token.expires_at:
+        raise HTTPException(status_code=400, detail="El enlace ha expirado")
+
+    if len(req.new_password) < 6:
+        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 6 caracteres")
+
+    user = db.query(User).filter(User.id == reset_token.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    user.password = hash_password(req.new_password)
+    reset_token.consumed = True
+    db.commit()
+
+    return {"message": "Contraseña actualizada correctamente"}
 
 
 @router.put("/users/{user_id}/block")

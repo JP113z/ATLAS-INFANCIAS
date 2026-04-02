@@ -28,3 +28,19 @@ async def send_otp_email(to_email: str, code: str):
         subtype=MessageType.html,
     )
     await fm.send_message(message)
+
+
+async def send_reset_email(to_email: str, reset_url: str):
+    html = f"""
+    <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta en <b>ATLAS Infancias</b>.</p>
+    <p>Haz clic en el siguiente enlace para crear una nueva contraseña:</p>
+    <p><a href="{reset_url}" style="font-size:16px;">Restablecer contraseña</a></p>
+    <p>Este enlace expira en 30 minutos. Si no solicitaste este cambio, ignora este mensaje.</p>
+    """
+    message = MessageSchema(
+        subject="Restablecer contraseña ATLAS Infancias",
+        recipients=[to_email],
+        body=html,
+        subtype=MessageType.html,
+    )
+    await fm.send_message(message)

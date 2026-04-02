@@ -95,16 +95,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const handleUpdateUsername = useCallback(
   async (username: string) => {
     setError(null);
-    setLoading(true);
-
     try {
       await api.updateMyUsername(username);
-      await refreshUser(); // para que el UI muestre el nuevo username
+      await refreshUser();
     } catch (err: any) {
       setError(err.message || "Error al actualizar el nombre de usuario");
       throw err;
-    } finally {
-      setLoading(false);
     }
   },
   [refreshUser]
@@ -150,17 +146,11 @@ const handleConfirmEmailChange = useCallback(async (code: string) => {
 const handleUpdatePassword = useCallback(
   async (currentPassword: string, newPassword: string) => {
     setError(null);
-    setLoading(true);
-
     try {
       await api.updateMyPassword(currentPassword, newPassword);
-
-
     } catch (err: any) {
       setError(err.message || "Error al actualizar la contraseña");
       throw err;
-    } finally {
-      setLoading(false);
     }
   },
   []

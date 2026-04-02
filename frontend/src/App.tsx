@@ -15,6 +15,7 @@ import AdminUsersPage from "./pages/AdminUsersPage";
 import AdminVotingQRPage from "./pages/AdminVotingQRPage";
 import TwoFactorPage from "./pages/TwoFactorPage";
 import EmailVerifyPage from "./pages/EmailVerifyPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 // Styles
 import "./styles/global.css";
@@ -159,6 +160,7 @@ function AppRoutes() {
         }
       />
       <Route path="/recuperar" element={<RecoverPage />} />
+      <Route path="/recuperar/nueva-contrasena" element={<ResetPasswordPage />} />
 
       {/* ─── Mapa — accesible para todos (visitante + logueado) ─── */}
       <Route path="/mapa" element={<MapPage />} />

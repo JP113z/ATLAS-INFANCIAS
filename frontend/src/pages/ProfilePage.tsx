@@ -88,6 +88,10 @@ export default function ProfilePage() {
           setError("Debes llenar la contraseña actual y la nueva");
           return;
         }
+        if (newPassword.length < 6) {
+          setError("La nueva contraseña debe tener al menos 6 caracteres");
+          return;
+        }
 
         await handleUpdatePassword(currentPassword, newPassword);
 
