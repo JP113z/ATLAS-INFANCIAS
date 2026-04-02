@@ -14,6 +14,7 @@ import VotingResultsPage from "./pages/VotingResultsPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
 import AdminVotingQRPage from "./pages/AdminVotingQRPage";
 import TwoFactorPage from "./pages/TwoFactorPage";
+import EmailVerifyPage from "./pages/EmailVerifyPage";
 
 // Styles
 import "./styles/global.css";
@@ -96,9 +97,26 @@ function TwoFactorRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Si no hay challenge pendiente, no debería entrar a /2fa
   if (!challengeId) {
     return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+function EmailChangeRoute({ children }: { children: React.ReactNode }) {
+  const { loading, emailChangeChallengeId } = useAuth();
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div className="spinner" />
+      </div>
+    );
+  }
+
+  if (!emailChangeChallengeId) {
+    return <Navigate to="/perfil" replace />;
   }
 
   return <>{children}</>;
@@ -151,6 +169,16 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <ProfilePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/verificar-correo"
+        element={
+          <ProtectedRoute>
+            <EmailChangeRoute>
+              <EmailVerifyPage />
+            </EmailChangeRoute>
           </ProtectedRoute>
         }
       />

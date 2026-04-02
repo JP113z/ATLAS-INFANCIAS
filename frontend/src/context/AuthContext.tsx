@@ -28,7 +28,7 @@ interface AuthState {
   
   handleRequestEmailChange: (newEmail: string, currentPassword: string) => Promise<void>;
   handleConfirmEmailChange: (code: string) => Promise<void>;
-
+  cancelEmailChange: () => void;
 
   emailChangeChallengeId: string | null;
   pendingNewEmail: string | null;
@@ -244,6 +244,12 @@ const handleUpdatePassword = useCallback(
     setError(null);
   }, []);
 
+  const cancelEmailChange = useCallback(() => {
+    setEmailChangeChallengeId(null);
+    setPendingNewEmail(null);
+    setError(null);
+  }, []);
+
   const handleLogout = useCallback(() => {
     api.logout();
     setUser(null);
@@ -272,6 +278,7 @@ const handleUpdatePassword = useCallback(
         handleUpdatePassword,
         handleRequestEmailChange,
         handleConfirmEmailChange,
+        cancelEmailChange,
         emailChangeChallengeId,
         pendingNewEmail,
       }}

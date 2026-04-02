@@ -7,7 +7,7 @@ import * as api from "../services/api";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
-  const { user, handleLogout, refreshUser,  handleUpdateUsername, handleUpdatePassword, handleRequestEmailChange, handleConfirmEmailChange, emailChangeChallengeId, pendingNewEmail } = useAuth();
+  const { user, handleLogout, refreshUser, handleUpdateUsername, handleUpdatePassword, handleRequestEmailChange } = useAuth();
 
   const [editing, setEditing] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -15,10 +15,9 @@ export default function ProfilePage() {
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState(""); 
-  
+  const [newPassword, setNewPassword] = useState("");
+
   const [emailPassword, setEmailPassword] = useState("");
-  const [otp, setOtp] = useState("");
 
   if (!user) {
     navigate("/login");
@@ -47,9 +46,8 @@ export default function ProfilePage() {
     }
 
     if (field === "email") {
-      setEditValue(currentValue); // por defecto muestra el email actual 
+      setEditValue(currentValue);
       setEmailPassword("");
-      setOtp("");
       return;
     }
 
@@ -64,11 +62,9 @@ export default function ProfilePage() {
     resetMessages();
     setSaving(false);
 
-    // Limpieza opcional
     setCurrentPassword("");
     setNewPassword("");
     setEmailPassword("");
-    setOtp("");
   };
 
   const saveEdit = async () => {
@@ -105,35 +101,18 @@ export default function ProfilePage() {
 
       // Email
       if (editing === "email") {
-        // solicitar OTP si aún no hay challenge
-        if (!emailChangeChallengeId) {
-          const nextEmail = editValue.trim();
-          if (!nextEmail) {
-            setError("Debes ingresar el nuevo correo");
-            return;
-          }
-          if (!emailPassword.trim()) {
-            setError("Debes ingresar tu contraseña actual para cambiar el correo");
-            return;
-          }
-
-          await handleRequestEmailChange(nextEmail, emailPassword);
-          setSuccess("Te enviamos un código al nuevo correo. Ingresa el OTP para confirmar.");
-          return; 
+        const nextEmail = editValue.trim();
+        if (!nextEmail) {
+          setError("Debes ingresar el nuevo correo");
+          return;
         }
-
-        // confirmar OTP si ya hay challenge
-        if (!otp.trim()) {
-          setError("Ingresa el código OTP");
+        if (!emailPassword.trim()) {
+          setError("Debes ingresar tu contraseña actual para cambiar el correo");
           return;
         }
 
-        await handleConfirmEmailChange(otp.trim());
-        await refreshUser(); 
-        setEditing(null);
-        setEmailPassword("");
-        setOtp("");
-        setSuccess("Correo actualizado correctamente");
+        await handleRequestEmailChange(nextEmail, emailPassword);
+        navigate("/verificar-correo");
         return;
       }
     } catch (err: any) {
@@ -225,39 +204,21 @@ export default function ProfilePage() {
           {/* EMAIL */}
           {f.key === "email" && (
             <>
-              {!emailChangeChallengeId ? (
-                <>
-                  <input
-                    className="input"
-                    type="email"
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
-                    placeholder="Nuevo correo"
-                    autoFocus
-                  />
-                  <input
-                    className="input"
-                    type="password"
-                    value={emailPassword}
-                    onChange={(e) => setEmailPassword(e.target.value)}
-                    placeholder="Contraseña actual"
-                  />
-                </>
-              ) : (
-                <>
-                  <div style={{ fontSize: 13, color: "var(--color-text-secondary)" }}>
-                    Código enviado a: <b>{pendingNewEmail ?? "tu nuevo correo"}</b>
-                  </div>
-                  <input
-                    className="input"
-                    type="text"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    placeholder="Código OTP"
-                    autoFocus
-                  />
-                </>
-              )}
+              <input
+                className="input"
+                type="email"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                placeholder="Nuevo correo"
+                autoFocus
+              />
+              <input
+                className="input"
+                type="password"
+                value={emailPassword}
+                onChange={(e) => setEmailPassword(e.target.value)}
+                placeholder="Contraseña actual"
+              />
             </>
           )}
 

@@ -109,7 +109,7 @@ def request_email_change(
     return {
         "message" : "Te enviamos un codigo al nuevo correo para confirmar el cambio",
         "challenge_id": str(ch.challenge_id),
-        "pending_ email" : new_email
+        "pending_email" : new_email
     }
 
 @router.post("/me/email/confirm")
