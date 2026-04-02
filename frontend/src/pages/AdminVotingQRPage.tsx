@@ -128,14 +128,6 @@ export default function AdminVotingQRPage() {
           >
             {ending ? "Finalizando..." : "Finalizar votación"}
           </button>
-
-          <button
-            className="btn btn-outline"
-            onClick={() => navigate(`/votacion/${code}/resultados`)}
-            style={{ marginTop: 8, marginLeft: 8 }}
-          >
-            Ver resultados
-          </button>
         </div>
       </div>
     </PageLayout>
