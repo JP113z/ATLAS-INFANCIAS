@@ -99,6 +99,9 @@ export interface VoteSession {
   active: boolean;
   created_by: number;
   created_at: string;
+  sticker_lat?: number | null;
+  sticker_lon?: number | null;
+  sticker_category?: string | null;
 }
 
 export interface VoteAnswer {
