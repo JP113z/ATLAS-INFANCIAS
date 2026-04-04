@@ -247,6 +247,13 @@ git push origin feature/nombre-de-la-feature
 # El otro desarrollador revisa y aprueba antes del merge
 ```
 
+```
+#Como correr las pruebas unitarias:
+
+cd backend
+venv/Scripts/python.exe -m pytest tests/ -v
+```
+
 ---
 
 > **Importante:** Los archivos `.env` nunca se suben al repositorio.
