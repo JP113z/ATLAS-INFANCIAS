@@ -25,7 +25,7 @@ interface AuthState {
   handleVerifyOtp: (code: string) => Promise<void>;
   handleUpdateUsername: (username: string) => Promise<void>;
   handleUpdatePassword: (currentPassword: string, newPassword: string) => Promise<void>;
-  
+
   handleRequestEmailChange: (newEmail: string, currentPassword: string) => Promise<void>;
   handleConfirmEmailChange: (code: string) => Promise<void>;
   cancelEmailChange: () => void;
@@ -71,6 +71,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [pendingNewEmail, setPendingNewEmail] = useState<string | null>(null);
 
   useEffect(() => {
+
+    // ─── DEV MODE: Comentar esto cuando el backend esté listo ───
+    const DEV_MODE = true; // cambiar a false cuando tengas backend
+
+    if (DEV_MODE) {
+      setUser({
+        id: 1,
+        username: "dev_user",
+        email: "dev@test.com",
+        role: "admin",  // cambiá a "user" para probar vista de usuario normal
+        verified: true,
+        gender: "masculino",
+      });
+      setLoading(false);
+      return;
+    }
+    // ─── FIN DEV MODE ───
     if (api.isAuthenticated()) {
       api
         .getMe()
@@ -93,68 +110,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const handleUpdateUsername = useCallback(
-  async (username: string) => {
+    async (username: string) => {
+      setError(null);
+      try {
+        await api.updateMyUsername(username);
+        await refreshUser();
+      } catch (err: any) {
+        setError(err.message || "Error al actualizar el nombre de usuario");
+        throw err;
+      }
+    },
+    [refreshUser]
+  );
+
+  const handleRequestEmailChange = useCallback(async (newEmail: string, currentPassword: string) => {
     setError(null);
+    setLoading(true);
     try {
-      await api.updateMyUsername(username);
+      const resp = await api.requestEmailChange(newEmail, currentPassword);
+      setEmailChangeChallengeId(resp.challenge_id);
+      setPendingNewEmail(resp.pending_email);
+    } catch (err: any) {
+      setError(err.message || "No se pudo solicitar el cambio de correo");
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const handleConfirmEmailChange = useCallback(async (code: string) => {
+    if (!emailChangeChallengeId) {
+      const e = new Error("No hay solicitud de cambio de correo pendiente.");
+      setError(e.message);
+      throw e;
+    }
+
+    setError(null);
+    setLoading(true);
+    try {
+      await api.confirmEmailChange(emailChangeChallengeId, code);
+      setEmailChangeChallengeId(null);
+      setPendingNewEmail(null);
       await refreshUser();
     } catch (err: any) {
-      setError(err.message || "Error al actualizar el nombre de usuario");
+      setError(err.message || "Código inválido o expirado");
       throw err;
+    } finally {
+      setLoading(false);
     }
-  },
-  [refreshUser]
-);
+  }, [emailChangeChallengeId, refreshUser]);
 
-const handleRequestEmailChange = useCallback(async (newEmail: string, currentPassword: string) => {
-  setError(null);
-  setLoading(true);
-  try {
-    const resp = await api.requestEmailChange(newEmail, currentPassword);
-    setEmailChangeChallengeId(resp.challenge_id);
-    setPendingNewEmail(resp.pending_email);
-  } catch (err: any) {
-    setError(err.message || "No se pudo solicitar el cambio de correo");
-    throw err;
-  } finally {
-    setLoading(false);
-  }
-}, []);
-
-const handleConfirmEmailChange = useCallback(async (code: string) => {
-  if (!emailChangeChallengeId) {
-    const e = new Error("No hay solicitud de cambio de correo pendiente.");
-    setError(e.message);
-    throw e;
-  }
-
-  setError(null);
-  setLoading(true);
-  try {
-    await api.confirmEmailChange(emailChangeChallengeId, code);
-    setEmailChangeChallengeId(null);
-    setPendingNewEmail(null);
-    await refreshUser();
-  } catch (err: any) {
-    setError(err.message || "Código inválido o expirado");
-    throw err;
-  } finally {
-    setLoading(false);
-  }
-}, [emailChangeChallengeId, refreshUser]);
-
-const handleUpdatePassword = useCallback(
-  async (currentPassword: string, newPassword: string) => {
-    setError(null);
-    try {
-      await api.updateMyPassword(currentPassword, newPassword);
-    } catch (err: any) {
-      setError(err.message || "Error al actualizar la contraseña");
-      throw err;
-    }
-  },
-  []
-);
+  const handleUpdatePassword = useCallback(
+    async (currentPassword: string, newPassword: string) => {
+      setError(null);
+      try {
+        await api.updateMyPassword(currentPassword, newPassword);
+      } catch (err: any) {
+        setError(err.message || "Error al actualizar la contraseña");
+        throw err;
+      }
+    },
+    []
+  );
 
   const handleLogin = useCallback(async (email: string, password: string): Promise<boolean> => {
     setError(null);
