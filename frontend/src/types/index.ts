@@ -1,5 +1,5 @@
 /* ───────────────────────────────────────────────
-   Tipos compartidos — ATLAS Infancias
+   Tipos compartidos — ATLAS Infancias · Sprint 1
    ─────────────────────────────────────────────── */
 
 // ─── Auth ───
@@ -69,7 +69,7 @@ export interface FeatureCollection {
   features: GeoJSONFeature[];
 }
 
-// ─── Filtros del mapa ───
+// ─── Filtros del mapa (RF_01–RF_06) ───
 export interface StickerFilters {
   category?: string;
   gender?: string;
@@ -78,39 +78,4 @@ export interface StickerFilters {
   date_preset?: string;
   date_from?: string;
   date_to?: string;
-}
-
-// ─── Comentarios ───
-export interface Comment {
-  id: number;
-  sticker_id: number;
-  user_id: number;
-  username: string;
-  content: string;
-  created_at: string;
-}
-
-// ─── Votaciones ───
-export interface VoteSession {
-  id: number;
-  code: string;
-  sticker_id: number;
-  question: string;
-  active: boolean;
-  created_by: number;
-  created_at: string;
-}
-
-export interface VoteAnswer {
-  question: string;
-  answer: boolean;
-}
-
-export interface VoteResults {
-  question: string;
-  total: number;
-  in_favor: number;
-  against: number;
-  percent_favor: number;
-  percent_against: number;
 }

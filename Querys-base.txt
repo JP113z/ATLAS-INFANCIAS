@@ -1,185 +1,122 @@
-// comandos iniciales
+-- ============================================================
+-- ATLAS Infancias — Script de base de datos
+-- Sprint 1: Seguridad (RF_01_seg–RF_13_seg) + RF_01–RF_12
+-- ============================================================
+
+-- ── Paso 1: Crear la base de datos ───────────────────────────────────────────
+-- RF_10: Creación de base de datos
 
 CREATE DATABASE atlas_infancias;
 CREATE EXTENSION IF NOT EXISTS postgis;
 
+
+-- ── Paso 2: Tablas principales ───────────────────────────────────────────────
+-- RF_11: Creación de tablas
+
+-- Usuarios (RF_01_seg, RF_02_seg, RF_04_seg, RF_05_seg, RF_07_seg–RF_13_seg)
 CREATE TABLE users (
-    id         SERIAL PRIMARY KEY,
-    username   VARCHAR(50)  UNIQUE NOT NULL,
-    email      VARCHAR(100) UNIQUE NOT NULL,
-    password   VARCHAR(255) NOT NULL,
-    gender     VARCHAR(20),
-    role       VARCHAR(20)  DEFAULT 'user',
-    verified   BOOLEAN      DEFAULT FALSE,
-    created_at TIMESTAMP    DEFAULT NOW()
+    id           SERIAL       PRIMARY KEY,
+    username     VARCHAR(50)  UNIQUE NOT NULL,
+    email        VARCHAR(100) UNIQUE NOT NULL,
+    password     VARCHAR(255) NOT NULL,
+    gender       VARCHAR(20),
+    role         VARCHAR(20)  DEFAULT 'user',
+    verified     BOOLEAN      DEFAULT FALSE,
+    blocked      BOOLEAN      NOT NULL DEFAULT FALSE,
+    pending_email VARCHAR(255),
+    created_at   TIMESTAMP    DEFAULT NOW(),
+
+    CONSTRAINT users_gender_check
+        CHECK (gender IN ('masculino', 'femenino', 'prefiero_no_decir') OR gender IS NULL)
 );
 
+-- Escuelas (RF_03: filtrar por escuela)
 CREATE TABLE schools (
-    id   SERIAL PRIMARY KEY,
+    id   SERIAL       PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     city VARCHAR(100)
 );
 
+-- Stickers georeferenciados (RF_01–RF_09, RF_12)
 CREATE TABLE stickers (
-    id         SERIAL PRIMARY KEY,
-    user_id    INTEGER REFERENCES users(id)   ON DELETE SET NULL,
-    school_id  INTEGER REFERENCES schools(id) ON DELETE SET NULL,
+    id         SERIAL      PRIMARY KEY,
+    user_id    INTEGER     REFERENCES users(id)   ON DELETE SET NULL,
+    school_id  INTEGER     REFERENCES schools(id) ON DELETE SET NULL,
     category   VARCHAR(50) NOT NULL,
     geojson    JSONB       NOT NULL,
     location   GEOMETRY(Point, 4326),
-    created_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMP   DEFAULT NOW(),
+
+    CONSTRAINT stickers_category_check
+        CHECK (category IN ('transito', 'recreacion', 'riesgo', 'afecto'))
 );
 
-CREATE TABLE votes (
-    id         SERIAL PRIMARY KEY,
-    sticker_id INTEGER REFERENCES stickers(id) ON DELETE CASCADE,
-    user_id    INTEGER REFERENCES users(id)    ON DELETE SET NULL,
-    question   TEXT    NOT NULL,
-    answer     BOOLEAN NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-
-// Data de prueba
-
-INSERT INTO users (username, email, password, gender, role, verified)
-VALUES ('demo_user', 'demo@atlas.com', 'demo_password', 'masculino', 'user', true)
-RETURNING id;
-
-INSERT INTO schools (name, city)
-VALUES ('Escuela Demo TEC', 'San José')
-RETURNING id;
-
-UPDATE users
-SET gender = 'prefiero_no_decir'
-WHERE gender = 'N/A';
-
-UPDATE stickers
-SET category = 'riesgo'
-WHERE category = 'arte';
-
-ALTER TABLE stickers
-ADD CONSTRAINT stickers_category_check
-CHECK (category IN ('transito', 'recreacion', 'riesgo', 'afecto'));
-
-
-
-ALTER TABLE users
-ADD CONSTRAINT users_gender_check
-CHECK (gender IN ('masculino', 'femenino', 'prefiero_no_decir') OR gender IS NULL);
-
-
-
-INSERT INTO schools (name, city) VALUES
-('Escuela Central San José', 'San José'),
-('Escuela Ascensión Esquivel Ibarra', 'Alajuela'),
-('Escuela República de Panamá', 'Heredia'),
-('Escuela de Guatemala', 'Alajuela'),
-('Escuela 15 de Septiembre', 'Cartago');
-
-SELECT * FROM schools ORDER BY id;
-
-
-INSERT INTO users (username, email, password, gender, role, verified)
-VALUES
-('user_m_01', 'user_m_01@test.com', 'temp123', 'masculino', 'user', TRUE),
-('user_f_01', 'user_f_01@test.com', 'temp123', 'femenino', 'user', TRUE),
-('user_pnd_01', 'user_pnd_01@test.com', 'temp123', 'prefiero_no_decir', 'user', TRUE),
-('user_m_02', 'user_m_02@test.com', 'temp123', 'masculino', 'user', TRUE),
-('user_f_02', 'user_f_02@test.com', 'temp123', 'femenino', 'user', TRUE);
-
-
-SELECT id, username, gender FROM users ORDER BY id;
-
-
+-- OTP de dos factores (RF_02_seg, RF_12_seg: verificación de correo)
 CREATE TABLE auth_otp_challenges (
-    id            SERIAL PRIMARY KEY,
-    challenge_id  UUID UNIQUE NOT NULL,
-    user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    code_hash     VARCHAR(255) NOT NULL,
-    expires_at    TIMESTAMP NOT NULL,
-    attempts      INTEGER DEFAULT 0,
-    consumed      BOOLEAN DEFAULT FALSE,
-    created_at    TIMESTAMP DEFAULT NOW()
+    id           SERIAL      PRIMARY KEY,
+    challenge_id UUID        UNIQUE NOT NULL,
+    user_id      INTEGER     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    code_hash    VARCHAR(255) NOT NULL,
+    expires_at   TIMESTAMP   NOT NULL,
+    attempts     INTEGER     DEFAULT 0,
+    consumed     BOOLEAN     DEFAULT FALSE,
+    created_at   TIMESTAMP   DEFAULT NOW()
 );
 
 CREATE INDEX idx_auth_otp_user ON auth_otp_challenges(user_id);
 CREATE INDEX idx_auth_otp_exp  ON auth_otp_challenges(expires_at);
 
-
-CREATE TABLE IF NOT EXISTS sticker_comments (
-  id SERIAL PRIMARY KEY,
-  sticker_id INTEGER NOT NULL,
-  user_id INTEGER NOT NULL,
-  content TEXT NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-  CONSTRAINT fk_comment_user
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
-CREATE INDEX IF NOT EXISTS idx_comments_sticker_id ON sticker_comments(sticker_id);
-CREATE INDEX IF NOT EXISTS idx_comments_created_at ON sticker_comments(created_at);
-
-ALTER TABLE users ADD COLUMN pending_email VARCHAR(255);
-
-ALTER TABLE users ADD COLUMN blocked BOOLEAN NOT NULL DEFAULT FALSE;
-
-
-
-// Nuevas cosas para Joshua deidad 
-
+-- Tokens de recuperación de contraseña (RF_09_seg: olvidé mi contraseña)
 CREATE TABLE password_reset_tokens (
-    id          SERIAL PRIMARY KEY,
-    token       VARCHAR(36) UNIQUE NOT NULL,
-    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    expires_at  TIMESTAMP NOT NULL,
-    consumed    BOOLEAN DEFAULT FALSE,
-    created_at  TIMESTAMP DEFAULT NOW()
+    id         SERIAL      PRIMARY KEY,
+    token      VARCHAR(36) UNIQUE NOT NULL,
+    user_id    INTEGER     NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expires_at TIMESTAMP   NOT NULL,
+    consumed   BOOLEAN     DEFAULT FALSE,
+    created_at TIMESTAMP   DEFAULT NOW()
 );
 
 CREATE INDEX idx_prt_token   ON password_reset_tokens(token);
 CREATE INDEX idx_prt_user_id ON password_reset_tokens(user_id);
 
 
+-- ── Paso 3: Datos de prueba ───────────────────────────────────────────────────
+
+INSERT INTO schools (name, city) VALUES
+    ('Escuela Central San José',          'San José'),
+    ('Escuela Ascensión Esquivel Ibarra', 'Alajuela'),
+    ('Escuela República de Panamá',       'Heredia'),
+    ('Escuela de Guatemala',              'Alajuela'),
+    ('Escuela 15 de Septiembre',          'Cartago');
+
+-- Usuario demo (contraseña: demo_password  — cambiar en producción)
+INSERT INTO users (username, email, password, gender, role, verified)
+VALUES ('demo_user', 'demo@atlas.com', 'demo_password', 'masculino', 'user', TRUE);
+
+-- Usuarios de prueba con distintos géneros
+INSERT INTO users (username, email, password, gender, role, verified) VALUES
+    ('user_m_01',  'user_m_01@test.com',  'temp123', 'masculino',        'user', TRUE),
+    ('user_f_01',  'user_f_01@test.com',  'temp123', 'femenino',         'user', TRUE),
+    ('user_pnd_01','user_pnd_01@test.com','temp123', 'prefiero_no_decir','user', TRUE),
+    ('user_m_02',  'user_m_02@test.com',  'temp123', 'masculino',        'user', TRUE),
+    ('user_f_02',  'user_f_02@test.com',  'temp123', 'femenino',         'user', TRUE);
 
 
-CREATE TABLE vote_sessions (
-    id         SERIAL PRIMARY KEY,
-    code       VARCHAR(10) UNIQUE NOT NULL,
-    sticker_id INTEGER REFERENCES stickers(id) ON DELETE CASCADE,
-    question   TEXT NOT NULL,
-    active     BOOLEAN DEFAULT TRUE NOT NULL,
-    created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE TABLE vote_answers (
-    id         SERIAL PRIMARY KEY,
-    session_id INTEGER NOT NULL REFERENCES vote_sessions(id) ON DELETE CASCADE,
-    user_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
-    answer     BOOLEAN NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW(),
-    UNIQUE (session_id, user_id)
-);
-
-
--- ============================================================
--- TRIGGERS DE AUDITORÍA
+-- ── Paso 4: Triggers de auditoría ────────────────────────────────────────────
 -- RF_15: Trigger cuando alguien EDITA un dato
 -- RF_16: Trigger cuando alguien AÑADE un dato
 -- RF_17: Trigger cuando alguien ELIMINA un dato
--- RF_50: Trigger específico al eliminar un usuario desde su perfil
--- ============================================================
+-- RF_50: Al eliminar un usuario desde su perfil, el trigger salta
 
 -- Tabla de auditoría central
 CREATE TABLE audit_log (
-    id          SERIAL PRIMARY KEY,
-    table_name  VARCHAR(100)  NOT NULL,
-    operation   VARCHAR(10)   NOT NULL,  -- 'INSERT', 'UPDATE', 'DELETE'
-    record_id   INTEGER,                  -- id del registro afectado
-    old_data    JSONB,                    -- valores antes del cambio (UPDATE/DELETE)
-    new_data    JSONB,                    -- valores después del cambio (INSERT/UPDATE)
-    changed_at  TIMESTAMP     NOT NULL DEFAULT NOW()
+    id         SERIAL       PRIMARY KEY,
+    table_name VARCHAR(100) NOT NULL,
+    operation  VARCHAR(10)  NOT NULL,   -- 'INSERT' | 'UPDATE' | 'DELETE'
+    record_id  INTEGER,                  -- id del registro afectado
+    old_data   JSONB,                    -- valores antes del cambio (UPDATE/DELETE)
+    new_data   JSONB,                    -- valores después del cambio (INSERT/UPDATE)
+    changed_at TIMESTAMP    NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_audit_table     ON audit_log(table_name);
@@ -187,19 +124,18 @@ CREATE INDEX idx_audit_operation ON audit_log(operation);
 CREATE INDEX idx_audit_changed   ON audit_log(changed_at);
 
 
--- ── Función genérica de auditoría ────────────────────────────────────────────
--- Usada por los triggers de INSERT, UPDATE y DELETE en todas las tablas clave.
+-- Función genérica reutilizada por todos los triggers de auditoría
 CREATE OR REPLACE FUNCTION fn_audit_generic()
 RETURNS TRIGGER AS $$
 BEGIN
     IF TG_OP = 'INSERT' THEN
-        -- RF_16: registro de inserción
+        -- RF_16: registrar inserción
         INSERT INTO audit_log (table_name, operation, record_id, new_data)
         VALUES (TG_TABLE_NAME, 'INSERT', NEW.id, row_to_json(NEW)::JSONB);
         RETURN NEW;
 
     ELSIF TG_OP = 'UPDATE' THEN
-        -- RF_15: registro de actualización (solo si hubo cambios reales)
+        -- RF_15: registrar actualización (solo si hubo cambio real)
         IF row(NEW.*) IS DISTINCT FROM row(OLD.*) THEN
             INSERT INTO audit_log (table_name, operation, record_id, old_data, new_data)
             VALUES (TG_TABLE_NAME, 'UPDATE', OLD.id,
@@ -209,7 +145,7 @@ BEGIN
         RETURN NEW;
 
     ELSIF TG_OP = 'DELETE' THEN
-        -- RF_17: registro de eliminación
+        -- RF_17 / RF_50: registrar eliminación
         INSERT INTO audit_log (table_name, operation, record_id, old_data)
         VALUES (TG_TABLE_NAME, 'DELETE', OLD.id, row_to_json(OLD)::JSONB);
         RETURN OLD;
@@ -218,39 +154,12 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- ── Triggers sobre la tabla users ────────────────────────────────────────────
--- Cubre RF_15 (editar usuario), RF_16 (crear usuario),
---       RF_17 (eliminar usuario), RF_50 (eliminación desde perfil del mismo usuario)
-
+-- Trigger sobre users (cubre RF_15, RF_16, RF_17 y RF_50)
 CREATE TRIGGER trg_users_audit
 AFTER INSERT OR UPDATE OR DELETE ON users
 FOR EACH ROW EXECUTE FUNCTION fn_audit_generic();
 
-
--- ── Triggers sobre la tabla stickers ─────────────────────────────────────────
--- Cubre RF_15, RF_16 y RF_17 para stickers
-
+-- Trigger sobre stickers (cubre RF_15, RF_16, RF_17)
 CREATE TRIGGER trg_stickers_audit
 AFTER INSERT OR UPDATE OR DELETE ON stickers
 FOR EACH ROW EXECUTE FUNCTION fn_audit_generic();
-
-
--- ── Triggers sobre sticker_comments ──────────────────────────────────────────
--- Cubre RF_15, RF_16 y RF_17 para comentarios
-
-CREATE TRIGGER trg_comments_audit
-AFTER INSERT OR UPDATE OR DELETE ON sticker_comments
-FOR EACH ROW EXECUTE FUNCTION fn_audit_generic();
-
-
--- ── Triggers sobre vote_sessions y vote_answers ───────────────────────────────
--- Cubre RF_15, RF_16 y RF_17 para el módulo de votaciones
-
-CREATE TRIGGER trg_vote_sessions_audit
-AFTER INSERT OR UPDATE OR DELETE ON vote_sessions
-FOR EACH ROW EXECUTE FUNCTION fn_audit_generic();
-
-CREATE TRIGGER trg_vote_answers_audit
-AFTER INSERT OR UPDATE OR DELETE ON vote_answers
-FOR EACH ROW EXECUTE FUNCTION fn_audit_generic();
-

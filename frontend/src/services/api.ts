@@ -1,5 +1,4 @@
 import type {
-  AuthResponse,
   LoginRequest,
   RegisterRequest,
   User,
@@ -7,20 +6,15 @@ import type {
   School,
   FeatureCollection,
   StickerFilters,
-  Comment,
-  VoteSession,
-  VoteResults,
 } from "../types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
-
 
 const TOKEN_KEY = "token";
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
-
 
 function authHeaders(): HeadersInit {
   const token = getToken();
@@ -42,6 +36,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
   return res.json();
 }
 
+// ─── Auth ─────────────────────────────────────────────────────────────────────
 
 export type LoginResponse = {
   requires_2fa: boolean;
@@ -60,45 +55,43 @@ export type VerifyOtpRequest = {
   code: string;
 };
 
-
+/** RF_02_seguridad — Inicio de sesión (paso 1) */
 export async function loginStep1(data: LoginRequest): Promise<LoginResponse> {
   const res = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-
   const result = await handleResponse<LoginResponse>(res);
-
   if (!result.requires_2fa && result.access_token) {
     localStorage.setItem(TOKEN_KEY, result.access_token);
   }
-
   return result;
 }
 
+/** RF_12_seguridad — Verificar correo / 2FA (paso 2) */
 export async function verifyOtp(data: VerifyOtpRequest): Promise<TokenResponse> {
   const res = await fetch(`${API_URL}/auth/2fa/verify`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-
   const result = await handleResponse<TokenResponse>(res);
   localStorage.setItem(TOKEN_KEY, result.access_token);
   return result;
 }
 
+/** RF_01_seguridad — Registro de usuario */
 export async function register(data: RegisterRequest): Promise<{ message: string }> {
   const res = await fetch(`${API_URL}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-
   return handleResponse<{ message: string }>(res);
 }
 
+/** RF_09_seguridad — Solicitar recuperación de contraseña */
 export async function recoverPassword(email: string): Promise<{ message: string }> {
   const res = await fetch(`${API_URL}/auth/recover`, {
     method: "POST",
@@ -108,6 +101,7 @@ export async function recoverPassword(email: string): Promise<{ message: string 
   return handleResponse(res);
 }
 
+/** RF_09_seguridad — Restablecer contraseña con token */
 export async function resetPassword(token: string, new_password: string): Promise<{ message: string }> {
   const res = await fetch(`${API_URL}/auth/recover/reset`, {
     method: "POST",
@@ -117,19 +111,16 @@ export async function resetPassword(token: string, new_password: string): Promis
   return handleResponse(res);
 }
 
-
+/** RF_06_seguridad — Cerrar sesión */
 export function logout() {
   localStorage.removeItem(TOKEN_KEY);
 }
-
-
 
 export function isAuthenticated(): boolean {
   return Boolean(localStorage.getItem(TOKEN_KEY));
 }
 
-
-
+/** RF_07_seguridad — Obtener datos del usuario actual */
 export async function getMe(): Promise<User> {
   const res = await fetch(`${API_URL}/auth/me`, {
     headers: authHeaders(),
@@ -146,17 +137,19 @@ export async function updateMe(data: UserUpdate): Promise<User> {
   return handleResponse<User>(res);
 }
 
+/** RF_48/RF_49 — Eliminar cuenta del usuario */
 export async function deleteMe(): Promise<void> {
   const res = await fetch(`${API_URL}/user/me`, {
     method: "DELETE",
     headers: authHeaders(),
   });
-  if(!res.ok) {
+  if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.detail || "Error eliminando cuenta");
   }
 }
 
+/** RF_24 — Listar usuarios (para admin) */
 export async function getUsers(): Promise<User[]> {
   const res = await fetch(`${API_URL}/stickers/user`, {
     headers: authHeaders(),
@@ -164,9 +157,9 @@ export async function getUsers(): Promise<User[]> {
   return handleResponse<User[]>(res);
 }
 
-
+/** RF_05_seguridad / RF_39 — Bloquear/desbloquear usuario (admin) */
 export async function blockUser(userId: number, blocked: boolean) {
-  const res = await fetch(`${API_URL}/auth/users/${userId}/block`, {   // 👈 /auth
+  const res = await fetch(`${API_URL}/auth/users/${userId}/block`, {
     method: "PUT",
     headers: authHeaders(),
     body: JSON.stringify({ blocked }),
@@ -174,15 +167,18 @@ export async function blockUser(userId: number, blocked: boolean) {
   return handleResponse<{ ok: boolean; blocked: boolean }>(res);
 }
 
+// ─── Escuelas ─────────────────────────────────────────────────────────────────
 
-
+/** RF_03 — Lista de escuelas para el filtro */
 export async function getSchools(): Promise<School[]> {
   const res = await fetch(`${API_URL}/stickers/schools`);
   if (!res.ok) return [];
   return res.json();
 }
 
+// ─── Stickers / Mapa ─────────────────────────────────────────────────────────
 
+/** RF_01-RF_06 — Obtener stickers con filtros combinados */
 export async function getStickers(filters: StickerFilters = {}): Promise<FeatureCollection> {
   const params = new URLSearchParams();
 
@@ -203,12 +199,14 @@ export async function getStickers(filters: StickerFilters = {}): Promise<Feature
   return handleResponse<FeatureCollection>(res);
 }
 
+// ─── GeoJSON ─────────────────────────────────────────────────────────────────
+
+/** RF_08/RF_09 — Importar/validar archivo GeoJSON */
 export async function uploadGeoJSON(
   file: File
 ): Promise<{ inserted: number; skipped: number; skipped_details?: any[]; message: string }> {
   const formData = new FormData();
   formData.append("file", file);
-
 
   const token = getToken();
   const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
@@ -218,21 +216,19 @@ export async function uploadGeoJSON(
     headers,
     body: formData,
   });
-
   return handleResponse(res);
 }
 
+/** RF_07 — Exportar stickers como GeoJSON */
 export async function downloadGeoJSON(filters: StickerFilters = {}): Promise<Blob> {
   const params = new URLSearchParams();
 
   if (filters.category) params.set("category", filters.category);
   if (filters.school_id) params.set("school_id", String(filters.school_id));
   if (filters.user_id) params.set("user_id", String(filters.user_id));
-
   params.set("download", "true");
 
   const qs = params.toString();
-
   const token = getToken();
   const headers: HeadersInit = {
     Accept: "application/geo+json",
@@ -245,7 +241,6 @@ export async function downloadGeoJSON(filters: StickerFilters = {}): Promise<Blo
   });
 
   if (!res.ok) {
-
     const text = await res.text().catch(() => "");
     throw new Error(text || `Error descargando GeoJSON (HTTP ${res.status})`);
   }
@@ -253,84 +248,19 @@ export async function downloadGeoJSON(filters: StickerFilters = {}): Promise<Blo
   return await res.blob();
 }
 
+// ─── Perfil de usuario ────────────────────────────────────────────────────────
 
-export async function getComments(stickerId: number): Promise<Comment[]> {
-  const res = await fetch(`${API_URL}/stickers/${stickerId}/comments`);
-  if (!res.ok) return [];
-  return res.json();
-}
-
-export async function addComment(stickerId: number, content: string): Promise<Comment> {
-  const res = await fetch(`${API_URL}/stickers/${stickerId}/comments`, {
-    method: "POST",
-
-    headers: { ...authHeaders(), "Content-Type": "application/json", },
-    body: JSON.stringify({ content }),
-  });
-
-  return handleResponse<Comment>(res);
-}
-
-export async function deleteComment(stickerId: number, commentId: number): Promise<void> {
-  const res = await fetch(`${API_URL}/stickers/${stickerId}/comments/${commentId}`, {
-    method: "DELETE",
-    headers: authHeaders(),
-  });
-  if (!res.ok) throw new Error("Error eliminando comentario");
-}
-
-
-export async function createVoteSession(stickerId: number, question: string): Promise<VoteSession> {
-  const res = await fetch(`${API_URL}/votes`, {
-    method: "POST",
-    headers: authHeaders(),
-    body: JSON.stringify({ sticker_id: stickerId, question }),
-  });
-  return handleResponse<VoteSession>(res);
-}
-
-export async function getVoteSession(code: string): Promise<VoteSession> {
-  const res = await fetch(`${API_URL}/votes/${code}`);
-  return handleResponse<VoteSession>(res);
-}
-
-export async function submitVote(code: string, answer: boolean): Promise<{ message: string }> {
-  const res = await fetch(`${API_URL}/votes/${code}/answer`, {
-    method: "POST",
-    headers: authHeaders(),
-    body: JSON.stringify({ answer }),
-  });
-  return handleResponse(res);
-}
-
-export async function getVoteResults(code: string): Promise<VoteResults> {
-  const res = await fetch(`${API_URL}/votes/${code}/results`);
-  return handleResponse<VoteResults>(res);
-}
-
-export async function endVoteSession(code: string): Promise<void> {
-  const res = await fetch(`${API_URL}/votes/${code}/end`, {
-    method: "PUT",
-    headers: authHeaders(),
-  });
-  if (!res.ok) throw new Error("Error finalizando votación");
-}
-
-export async function getActiveVoters(code: string): Promise<{ count: number }> {
-  const res = await fetch(`${API_URL}/votes/${code}/voters`);
-  return handleResponse(res);
-}
-
+/** RF_11_seguridad — Cambiar nombre de usuario */
 export async function updateMyUsername(username: string): Promise<{ message: string; username: string }> {
   const res = await fetch(`${API_URL}/user/me/username`, {
     method: "PATCH",
     headers: authHeaders(),
     body: JSON.stringify({ username }),
   });
-
   return handleResponse(res);
 }
 
+/** RF_08_seguridad — Cambiar contraseña */
 export async function updateMyPassword(
   current_password: string,
   new_password: string
@@ -340,10 +270,14 @@ export async function updateMyPassword(
     headers: authHeaders(),
     body: JSON.stringify({ current_password, new_password }),
   });
-
   return handleResponse(res);
 }
-export async function requestEmailChange(new_email: string, current_password: string): Promise<{ message: string; challenge_id: string; pending_email: string }> {
+
+/** RF_10_seguridad — Solicitar cambio de correo */
+export async function requestEmailChange(
+  new_email: string,
+  current_password: string
+): Promise<{ message: string; challenge_id: string; pending_email: string }> {
   const res = await fetch(`${API_URL}/user/me/email/request`, {
     method: "PATCH",
     headers: authHeaders(),
@@ -352,7 +286,11 @@ export async function requestEmailChange(new_email: string, current_password: st
   return handleResponse(res);
 }
 
-export async function confirmEmailChange(challenge_id: string, code: string): Promise<{ message: string; email: string }> {
+/** RF_13_seguridad — Confirmar cambio de correo con OTP */
+export async function confirmEmailChange(
+  challenge_id: string,
+  code: string
+): Promise<{ message: string; email: string }> {
   const res = await fetch(`${API_URL}/user/me/email/confirm`, {
     method: "POST",
     headers: authHeaders(),

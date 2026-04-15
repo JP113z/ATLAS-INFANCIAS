@@ -8,11 +8,7 @@ import RegisterPage from "./pages/RegisterPage";
 import RecoverPage from "./pages/RecoverPage";
 import MapPage from "./pages/MapPage";
 import ProfilePage from "./pages/ProfilePage";
-import VotingJoinPage from "./pages/VotingJoinPage";
-import VotingQuestionPage from "./pages/VotingQuestionPage";
-import VotingResultsPage from "./pages/VotingResultsPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
-import AdminVotingQRPage from "./pages/AdminVotingQRPage";
 import TwoFactorPage from "./pages/TwoFactorPage";
 import EmailVerifyPage from "./pages/EmailVerifyPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
@@ -87,6 +83,7 @@ function GuestRoute({ children }: { children: React.ReactNode }) {
 
   return <>{children}</>;
 }
+
 function TwoFactorRoute({ children }: { children: React.ReactNode }) {
   const { loading, challengeId } = useAuth();
 
@@ -122,43 +119,15 @@ function EmailChangeRoute({ children }: { children: React.ReactNode }) {
 
   return <>{children}</>;
 }
+
 function AppRoutes() {
   return (
     <Routes>
       {/* ─── Rutas públicas (redirigen al mapa si ya logueado) ─── */}
-      <Route
-        path="/"
-        element={
-          <GuestRoute>
-            <LandingPage />
-          </GuestRoute>
-        }
-      />
-      <Route
-        path="/login"
-        element={
-          <GuestRoute>
-            <LoginPage />
-          </GuestRoute>
-        }
-      />
-      <Route
-        path="/2fa"
-        element={
-          <TwoFactorRoute>
-              <TwoFactorPage />
-           </TwoFactorRoute>
-          }
-/>
-
-      <Route
-        path="/registro"
-        element={
-          <GuestRoute>
-            <RegisterPage />
-          </GuestRoute>
-        }
-      />
+      <Route path="/" element={<GuestRoute><LandingPage /></GuestRoute>} />
+      <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
+      <Route path="/registro" element={<GuestRoute><RegisterPage /></GuestRoute>} />
+      <Route path="/2fa" element={<TwoFactorRoute><TwoFactorPage /></TwoFactorRoute>} />
       <Route path="/recuperar" element={<RecoverPage />} />
       <Route path="/recuperar/nueva-contrasena" element={<ResetPasswordPage />} />
 
@@ -166,14 +135,7 @@ function AppRoutes() {
       <Route path="/mapa" element={<MapPage />} />
 
       {/* ─── Rutas protegidas (requieren login) ─── */}
-      <Route
-        path="/perfil"
-        element={
-          <ProtectedRoute>
-            <ProfilePage />
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/perfil" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
       <Route
         path="/verificar-correo"
         element={
@@ -185,28 +147,8 @@ function AppRoutes() {
         }
       />
 
-      {/* ─── Votaciones — accesible para cualquier logueado ─── */}
-      <Route path="/votacion/unirse" element={<VotingJoinPage />} />
-      <Route path="/votacion/:code" element={<VotingQuestionPage />} />
-      <Route path="/votacion/:code/resultados" element={<VotingResultsPage />} />
-
       {/* ─── Admin only ─── */}
-      <Route
-        path="/admin/usuarios"
-        element={
-          <AdminRoute>
-            <AdminUsersPage />
-          </AdminRoute>
-        }
-      />
-      <Route
-        path="/admin/votacion/:code"
-        element={
-          <AdminRoute>
-            <AdminVotingQRPage />
-          </AdminRoute>
-        }
-      />
+      <Route path="/admin/usuarios" element={<AdminRoute><AdminUsersPage /></AdminRoute>} />
 
       {/* ─── 404 ─── */}
       <Route path="*" element={<Navigate to="/" replace />} />
