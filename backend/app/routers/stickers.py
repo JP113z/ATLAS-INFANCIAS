@@ -23,6 +23,7 @@ Category = Literal["transito", "recreacion", "riesgo", "afecto"]
 Gender = Literal["masculino", "femenino", "prefiero_no_decir"]
 DatePreset = Literal["hoy", "ultimos_7", "ultimos_30"]
 
+MAX_COMMENT_LEN = 400
 
 def _parse_date_yyyy_mm_dd(value: str) -> date:
     # YYYY-MM-DD
@@ -146,7 +147,8 @@ def add_comment(
     content = payload.content.strip()
     if not content:
         raise HTTPException(status_code=400, detail="Contenido vacío")
-
+    if len(content) > MAX_COMMENT_LEN:
+        raise HTTPException(status_code=400, detail=f"Máximo {MAX_COMMENT_LEN} caracteres")
     comment = StickerComment(
         sticker_id=sticker_id,
         user_id=user.id,

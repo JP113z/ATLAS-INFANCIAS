@@ -1,9 +1,10 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, constr
 from datetime import datetime
 
 class CommentCreate(BaseModel):
-    content: str = Field(min_length=1, max_length=2000)
+    content: constr(strip_whitespace=True, min_length=1, max_length=400)
 
+    
 class CommentOut(BaseModel):
     id: int
     sticker_id: int

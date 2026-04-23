@@ -69,6 +69,8 @@ export default function StickerPopup({ sticker, onClose }: StickerPopupProps) {
     }
   };
 
+const MAX_COMMENT_LEN = 400;
+
   return (
     <div className="sticker-popup-overlay" onClick={onClose}>
       <div className="sticker-popup fade-in" onClick={(e) => e.stopPropagation()}>
@@ -128,18 +130,30 @@ export default function StickerPopup({ sticker, onClose }: StickerPopupProps) {
               <>
                 <div style={{ fontWeight: 700, fontSize: 13, color: "var(--color-text-secondary)" }}>{user.username}</div>
                 <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
-                  <input
-                    className="input"
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Escribe un comentario..."
-                    style={{ padding: "6px 10px", fontSize: 13 }}
-                    disabled={submitting}
-                  />
-                  <button className="btn btn-primary btn-sm" onClick={handleAddComment} disabled={submitting || !newComment.trim()}>
-                    {submitting ? "..." : "Enviar"}
-                  </button>
+
+          <input
+            className="input"
+            value={newComment}
+            maxLength={MAX_COMMENT_LEN}
+            onChange={(e) => setNewComment(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={`Escribe un comentario... (máx. ${MAX_COMMENT_LEN})`}
+            style={{ padding: "6px 10px", fontSize: 13 }}
+            disabled={submitting}
+          />
+
+          <div style={{ marginTop: 4, fontSize: 12, color: "var(--color-text-muted)", textAlign: "right" }}>
+            {newComment.length}/{MAX_COMMENT_LEN}
+          </div>
+
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={handleAddComment}
+            disabled={submitting || !newComment.trim() || newComment.trim().length > MAX_COMMENT_LEN}
+          >
+            {submitting ? "..." : "Enviar"}
+          </button>
+
                 </div>
               </>
             ) : (
