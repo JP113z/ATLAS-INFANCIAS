@@ -24,7 +24,7 @@ def validate_geojson_file(file: UploadFile = File(...)):
         data = _read_upload_as_json(file)
     except Exception as e:
         return JSONResponse(status_code=400, content={
-            "is_valid": False,
+            "is_valid": False,  
             "issues": [{"path": "$", "message": f"Archivo corrupto o no es JSON válido: {str(e)}"}]
         })
 

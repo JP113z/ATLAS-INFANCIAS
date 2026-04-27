@@ -69,6 +69,15 @@ export default function StickerPopup({ sticker, onClose }: StickerPopupProps) {
     }
   };
 
+const formatDate = (iso?: string) => {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("es-CR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+};
+
 const MAX_COMMENT_LEN = 400;
 
   return (
@@ -92,8 +101,41 @@ const MAX_COMMENT_LEN = 400;
         </div>
 
         {/* Sticker info */}
-        <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 8, paddingBottom: 8, borderBottom: "1px solid var(--color-border-warm)" }}>
-          Categoría: <strong>{sticker.category}</strong> · ID: {sticker.id}
+        <div
+          style={{
+            fontSize: 13,
+            color: "var(--color-text-muted)",
+            marginBottom: 12,
+            paddingBottom: 10,
+            borderBottom: "1px solid var(--color-border-warm)",
+            lineHeight: 1.6,
+          }}
+        >
+          <div>
+            <strong>Categoría:</strong> {sticker.category}
+          </div>
+
+          {sticker.school && (
+            <div>
+              <strong>Escuela:</strong>{" "}
+              {sticker.school.name}
+              {sticker.school.city ? ` (${sticker.school.city})` : ""}
+            </div>
+          )}
+
+          {sticker.user && (
+            <div>
+              <strong>Creado por:</strong> {sticker.user.username}
+            </div>
+          )}
+
+          <div>
+            <strong>Fecha:</strong> {formatDate(sticker.created_at)}
+          </div>
+
+          <div style={{ opacity: 0.6 }}>
+            <strong>ID:</strong> {sticker.id}
+          </div>
         </div>
 
         {/* Comments */}

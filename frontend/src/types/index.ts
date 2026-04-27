@@ -49,12 +49,17 @@ export interface School {
 export interface StickerProperties {
   id: number;
   category: string;
-  user_id?: number | null;
-  school_id?: number | null;
-  gender?: string | null;
-  created_at?: string;
+  created_at?: string; 
+  school?: {
+    id: number;
+    name: string;
+    city?: string;
+  };
+  user?: {
+    id: number;
+    username: string;
+  };
 }
-
 export interface GeoJSONFeature {
   type: "Feature";
   geometry: {

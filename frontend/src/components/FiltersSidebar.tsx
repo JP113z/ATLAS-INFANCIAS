@@ -42,18 +42,11 @@ export default function FiltersSidebar({ filters, onFiltersChange }: FiltersSide
       })();
     }, [user]);
 
+const updateFilter = (key: keyof StickerFilters, value: string) => {
+  const next = { ...filters, [key]: value || undefined };
+  onFiltersChange(next);
+};
 
-  const updateFilter = (key: keyof StickerFilters, value: string) => {
-    const next = { ...filters, [key]: value || undefined };
-
-
-    if (key === "date_preset") {
-      next.date_from = undefined;
-      next.date_to = undefined;
-    }
-
-    onFiltersChange(next);
-  };
 
   const clearFilters = () => {
     onFiltersChange({});
@@ -153,20 +146,27 @@ export default function FiltersSidebar({ filters, onFiltersChange }: FiltersSide
           </option>
         ))}
       </select>
-      {/*Rango de fechas */}
-      <label className="label">{Icons.calendar} Fecha</label>
-      <select
-        className="input"
-        style={{ marginBottom: 16 }}
-        value={filters.date_preset || ""}
-        onChange={(e) => updateFilter("date_preset", e.target.value)}
-        disabled={isDisabled}
-      >
-        <option value="">(sin filtro)</option>
-        <option value="hoy">Hoy</option>
-        <option value="ultimos_7">Últimos 7 días</option>
-        <option value="ultimos_30">Últimos 30 días</option>
-      </select>
+        {/* Rango de fechas */}
+        <label className="label">{Icons.calendar} Fecha</label>
+
+        <input
+          className="input"
+          type="date"
+          style={{ marginBottom: 8 }}
+          value={filters.date_from || ""}
+          onChange={(e) => updateFilter("date_from", e.target.value)}
+          disabled={isDisabled}
+        />
+
+        <input
+          className="input"
+          type="date"
+          style={{ marginBottom: 16 }}
+          value={filters.date_to || ""}
+          onChange={(e) => updateFilter("date_to", e.target.value)}
+          disabled={isDisabled}
+        />
+
       {/* Género */}
       <label className="label">{Icons.user} Género</label>
       <select

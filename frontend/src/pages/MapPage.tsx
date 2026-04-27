@@ -11,7 +11,6 @@ import * as api from "../services/api";
 
 // ─── Colores por categoría ───
 const CATEGORY_COLORS: Record<string, string> = {
-  riesgo: "#E53935",
   peligroso: "#E53935",
   afecto: "#E91E90",
   recreacion: "#4CAF50",
@@ -39,6 +38,31 @@ function createMarkerIcon(category: string) {
     popupAnchor: [0, -38],
   });
 }
+
+
+const BASEMAPS = {
+  osm: {
+    name: "Mapa estándar",
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attribution: "&copy; OpenStreetMap",
+  },
+  dark: {
+    name: "Oscuro",
+    url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+    attribution: "&copy; CARTO",
+  },
+  light: {
+    name: "Claro",
+    url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+    attribution: "&copy; CARTO",
+  },
+  satellite: {
+    name: "Satélite",
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    attribution: "&copy; Esri",
+  },
+};
+
 
 // ─── Legend ───
 function MapLegend() {
@@ -76,6 +100,8 @@ export default function MapPage() {
   const [selectedSticker, setSelectedSticker] = useState<StickerProperties | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [basemap, setBasemap] = useState<keyof typeof BASEMAPS>("osm");
+
 
   // Responsive check
   useEffect(() => {
@@ -105,86 +131,57 @@ export default function MapPage() {
     return JSON.stringify(data.features.map((f) => f.properties?.id));
   }, [data]);
 
+
+ 
   return (
     <PageLayout noFooter>
-      <div className="map-layout" style={{ flex: 1 }}>
-        {/* Mobile filter toggle */}
+      <div className="map-layout">
+
         {isMobile && (
           <button
             className="btn btn-primary btn-sm"
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            style={{ margin: "8px 16px", alignSelf: "flex-start", zIndex: 450 }}
+            style={{ margin: 12 }}
           >
             {Icons.filter} {sidebarOpen ? "Ocultar filtros" : "Mostrar filtros"}
           </button>
         )}
 
-        {/* Sidebar */}
         {sidebarOpen && (
           <FiltersSidebar filters={filters} onFiltersChange={setFilters} />
         )}
 
-        {/* Map */}
         <div className="map-container">
-          {/* Loading/Error overlay */}
-          {loading && (
-            <div style={{
-              position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)",
-              background: "var(--color-white)", padding: "8px 16px", borderRadius: 8,
-              boxShadow: "var(--shadow-sm)", zIndex: 450, fontSize: 13,
-              fontFamily: "var(--font-body)", display: "flex", alignItems: "center", gap: 8,
-            }}>
-              <div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />
-              Cargando stickers...
-            </div>
-          )}
 
-          {error && (
-            <div style={{
-              position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)",
-              zIndex: 450,
-            }}>
-              <div className="alert alert-error" style={{ marginBottom: 0 }}>Error: {error}</div>
-            </div>
-          )}
+          {/* Basemap selector */}
+          <div style={{ position: "absolute", top: 12, right: 12, zIndex: 500 }}>
+            <select
+              className="input"
+              value={basemap}
+              onChange={(e) => setBasemap(e.target.value as any)}
+            >
+              {Object.entries(BASEMAPS).map(([k, v]) => (
+                <option key={k} value={k}>{v.name}</option>
+              ))}
+            </select>
+          </div>
 
-          {/* Sticker count */}
-          {data && !loading && (
-            <div style={{
-              position: "absolute", top: 12, left: 12,
-              background: "var(--color-white)", padding: "6px 12px", borderRadius: 8,
-              boxShadow: "var(--shadow-sm)", zIndex: 400, fontSize: 12,
-              fontFamily: "var(--font-body)", fontWeight: 600,
-            }}>
-              {data.features.length} sticker{data.features.length !== 1 ? "s" : ""}
-            </div>
-          )}
-
-          <MapContainer center={center} zoom={14} style={{ height: "100%", width: "100%" }}>
+          <MapContainer center={center} zoom={14} style={{ width: "100%", height: "100%" }}>
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              url={BASEMAPS[basemap].url}
+              attribution={BASEMAPS[basemap].attribution}
             />
 
             {data && (
               <GeoJSON
                 key={geoJsonKey}
                 data={data as any}
-                pointToLayer={(feature, latlng) => {
-                  const category = feature.properties?.category || "";
-                  return L.marker(latlng, { icon: createMarkerIcon(category) });
-                }}
-                onEachFeature={(feature, layer) => {
-                  // Al hacer click, abrimos el popup personalizado
-                  layer.on("click", () => {
-                    setSelectedSticker(feature.properties as StickerProperties);
-                  });
-
-                  // Tooltip rápido al hover
-                  const props = feature.properties || {};
-                  layer.bindTooltip(
-                    `${props.category || "Sticker"} #${props.id || "?"}`,
-                    { direction: "top", offset: [0, -30] }
+                pointToLayer={(f, latlng) =>
+                  L.marker(latlng, { icon: createMarkerIcon(f.properties?.category) })
+                }
+                onEachFeature={(f, layer) => {
+                  layer.on("click", () =>
+                    setSelectedSticker(f.properties as StickerProperties)
                   );
                 }}
               />
@@ -193,7 +190,6 @@ export default function MapPage() {
 
           <MapLegend />
 
-          {/* Custom Sticker Popup */}
           {selectedSticker && (
             <StickerPopup
               sticker={selectedSticker}

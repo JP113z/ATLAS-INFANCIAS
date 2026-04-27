@@ -64,12 +64,12 @@ def validate_geojson(data: Dict[str, Any], require_properties: bool = False) -> 
 
         geom_type = geom.get("type")
 
-        if geom_type != "Point":
-            issues.append(ValidationIssue(feature_index=i, path=f"features[{i}].geometry.type",message="Por ahora solo se soporta geometry.type='Point' (stickers)"))
-            continue
+        if geom_type == "Point":
+             coords = geom.get("coordinates")
+             issues.extend(_validate_point_coordinates(coords,i))
 
-        coords = geom.get("coordinates")
-        issues.extend(_validate_point_coordinates(coords, i))
+    #    coords = geom.get("coordinates")
+    #   issues.extend(_validate_point_coordinates(coords, i))
 
         if require_properties:
             props = feat.get("properties")
