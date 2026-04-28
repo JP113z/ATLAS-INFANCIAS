@@ -17,27 +17,32 @@ const CATEGORY_COLORS: Record<string, string> = {
   transito: "#FDD835",
 };
 
+
+const CATEGORY_ICONS: Record<string, string> = {
+  peligroso: "/assets/peligroso.png",
+  recreacion: "/assets/recreativo.png",
+  afecto: "/assets/afecto.png",
+  transito: "/assets/transito.png",
+};
+
+
 function getCategoryColor(category: string): string {
   return CATEGORY_COLORS[category?.toLowerCase()] || "#999";
 }
 
-// ─── Crear ícono de marcador SVG por categoría ───
+// ─── Crear ícono de segun foto ───
+
 function createMarkerIcon(category: string) {
-  const color = getCategoryColor(category);
-  const svg = `
-    <svg width="28" height="38" viewBox="0 0 28 38" xmlns="http://www.w3.org/2000/svg">
-      <path d="M14 0C6.27 0 0 6.27 0 14c0 10.5 14 24 14 24s14-13.5 14-24C28 6.27 21.73 0 14 0z" fill="${color}"/>
-      <circle cx="14" cy="14" r="6" fill="#fff"/>
-    </svg>
-  `;
-  return L.divIcon({
-    html: svg,
-    className: "",
-    iconSize: [28, 38],
-    iconAnchor: [14, 38],
-    popupAnchor: [0, -38],
+  const iconUrl = CATEGORY_ICONS[category?.toLowerCase()];
+
+  return L.icon({
+    iconUrl: iconUrl ??  "/assets/transito.png", 
+    iconSize: [32, 32],        
+    iconAnchor: [16, 32],      
+    popupAnchor: [0, -32],     
   });
 }
+
 
 
 const BASEMAPS = {
@@ -67,8 +72,7 @@ const BASEMAPS = {
 // ─── Legend ───
 function MapLegend() {
   const items = [
-    { label: "Peligroso", color: CATEGORY_COLORS.riesgo },
-    { label: "Afecto", color: CATEGORY_COLORS.afecto },
+    { label: "Peligroso", color: CATEGORY_COLORS.peligroso },    { label: "Afecto", color: CATEGORY_COLORS.afecto },
     { label: "Recreación", color: CATEGORY_COLORS.recreacion },
     { label: "Tránsito", color: CATEGORY_COLORS.transito },
   ];
@@ -176,14 +180,14 @@ export default function MapPage() {
               <GeoJSON
                 key={geoJsonKey}
                 data={data as any}
-                pointToLayer={(f, latlng) =>
-                  L.marker(latlng, { icon: createMarkerIcon(f.properties?.category) })
-                }
-                onEachFeature={(f, layer) => {
-                  layer.on("click", () =>
-                    setSelectedSticker(f.properties as StickerProperties)
-                  );
+
+                pointToLayer={(feature, latlng) => {
+                  const category = feature.properties?.category || "";
+                  return L.marker(latlng, {
+                    icon: createMarkerIcon(category),
+                  });
                 }}
+
               />
             )}
           </MapContainer>
