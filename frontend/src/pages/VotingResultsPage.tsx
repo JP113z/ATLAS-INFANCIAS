@@ -44,21 +44,24 @@ export default function VotingResultsPage() {
               <h3 style={{ fontFamily: "var(--font-display)", marginBottom: 8 }}>Resultados</h3>
               <p style={{ fontSize: 16, color: "var(--color-text)", marginBottom: 16 }}>{results.question}</p>
 
-              {/* Barra de resultados */}
-              <div className="vote-bar">
-                <div className="vote-bar-favor" style={{ width: `${results.percent_favor}%` }}>
-                  <span>A favor</span>
-                  <span>{results.percent_favor}%</span>
-                </div>
-                <div className="vote-bar-against" style={{ width: `${results.percent_against}%` }}>
-                  <span>{results.percent_against}%</span>
-                  <span>En contra</span>
-                </div>
+              {/* Etiquetas encima de la barra */}
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontWeight: 700, fontSize: 14 }}>
+                <span style={{ color: "var(--color-green)" }}>A favor — {results.percent_favor}%</span>
+                <span style={{ color: "var(--color-red)" }}>En contra — {results.percent_against}%</span>
               </div>
 
-              <p style={{ fontSize: 14, color: "var(--color-text-muted)", marginTop: 16, textAlign: "center" }}>
-                Total de votos: <strong>{results.total}</strong> · A favor: {results.in_favor} · En contra: {results.against}
-              </p>
+              {/* Barra de resultados (solo color, sin texto interno) */}
+              <div className="vote-bar">
+                <div className="vote-bar-favor" style={{ width: `${results.percent_favor}%` }} />
+                <div className="vote-bar-against" style={{ width: `${results.percent_against}%` }} />
+              </div>
+
+              {/* Conteos debajo de la barra */}
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 13, color: "var(--color-text-muted)" }}>
+                <span>{results.in_favor} {results.in_favor === 1 ? "voto" : "votos"}</span>
+                <span>Total: <strong>{results.total}</strong></span>
+                <span>{results.against} {results.against === 1 ? "voto" : "votos"}</span>
+              </div>
             </>
           )}
         </div>

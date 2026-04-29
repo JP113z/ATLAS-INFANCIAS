@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Html5Qrcode } from "html5-qrcode";
 import PageLayout from "../components/PageLayout";
 import { Icons } from "../components/Navbar";
 import * as api from "../services/api";
@@ -9,25 +10,33 @@ export default function VotingJoinPage() {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [scanning, setScanning] = useState(false);
+
+  const qrRef = useRef<Html5Qrcode | null>(null);
+
+  // Limpiar scanner al desmontar el componente
+  useEffect(() => {
+    return () => {
+      qrRef.current?.stop().catch(() => {});
+    };
+  }, []);
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!code.trim()) {
+    const trimmed = code.trim();
+    if (!trimmed) {
       setError("Ingresa un código de sesión");
       return;
     }
-
     setError("");
     setLoading(true);
     try {
-      // Verificar que la sesión existe y está activa
-      const session = await api.getVoteSession(code.trim());
+      const session = await api.getVoteSession(trimmed);
       if (!session.active) {
         setError("Esta votación ya finalizó");
         return;
       }
-      // Navegar a la pregunta con el código
-      navigate(`/votacion/${code.trim()}`);
+      navigate(`/votacion/${trimmed}`);
     } catch (err: any) {
       setError(err.message || "Código de sesión no encontrado");
     } finally {
@@ -35,20 +44,78 @@ export default function VotingJoinPage() {
     }
   };
 
+  const startScan = async () => {
+    setError("");
+    setScanning(true);
+
+    const scanner = new Html5Qrcode("qr-reader-div");
+    qrRef.current = scanner;
+
+    try {
+      await scanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 240, height: 240 } },
+        (decodedText) => {
+          // Extraer el código del URL del QR, o usarlo directo
+          let extracted = decodedText.trim();
+          try {
+            const url = new URL(decodedText);
+            const parts = url.pathname.split("/").filter(Boolean);
+            const idx = parts.indexOf("votacion");
+            if (idx !== -1 && parts[idx + 1]) {
+              extracted = parts[idx + 1];
+            }
+          } catch {
+            // No era URL — usar el texto directo como código
+          }
+
+          scanner.stop().then(() => {
+            setScanning(false);
+            qrRef.current = null;
+            navigate(`/votacion/${extracted}`);
+          }).catch(() => {});
+        },
+        () => {} // errores de frame ignorados
+      );
+    } catch {
+      setScanning(false);
+      qrRef.current = null;
+      setError("No se pudo acceder a la cámara. Verifica que diste permiso.");
+    }
+  };
+
+  const stopScan = () => {
+    qrRef.current?.stop().then(() => {
+      setScanning(false);
+      qrRef.current = null;
+    }).catch(() => {
+      setScanning(false);
+    });
+  };
+
   return (
     <PageLayout>
       <div className="page-center">
         <div className="card fade-in" style={{ maxWidth: 500, width: "100%", textAlign: "center" }}>
-          <a onClick={() => navigate("/mapa")} className="back-link" style={{ textAlign: "left", display: "flex", alignItems: "center", gap: 6, fontSize: 16, fontWeight: 700, marginBottom: 20 }}>
+          <a
+            onClick={() => navigate("/mapa")}
+            className="back-link"
+            style={{ textAlign: "left", display: "flex", alignItems: "center", gap: 6, fontSize: 16, fontWeight: 700, marginBottom: 20 }}
+          >
             {Icons.back} Volver
           </a>
 
-          <h2 style={{ fontFamily: "var(--font-display)", fontSize: 24, marginBottom: 20 }}>¡Bienvenido a la votación!</h2>
+          <h2 style={{ fontFamily: "var(--font-display)", fontSize: 24, marginBottom: 20 }}>
+            ¡Bienvenido a la votación!
+          </h2>
 
           {error && <div className="alert alert-error">{error}</div>}
 
+          {/* Formulario de código manual */}
           <form onSubmit={handleJoin}>
-            <label className="label" style={{ justifyContent: "center" }}>Escribe el código de la sesión</label>
+            <label className="label" style={{ justifyContent: "center" }}>
+              Escribe el código de la sesión
+            </label>
             <input
               className="input"
               value={code}
@@ -56,18 +123,45 @@ export default function VotingJoinPage() {
               placeholder="ej: xpf6hi"
               style={{ textAlign: "center", fontSize: 18, padding: "12px 16px", marginTop: 8, maxWidth: 280, margin: "8px auto 0" }}
             />
-            <p style={{ fontSize: 13, color: "var(--color-text-muted)", marginTop: 8 }}>Tu sesión y código QR se guardará</p>
-            <button className="btn btn-olive" type="submit" style={{ padding: "10px 24px", fontSize: 15, marginTop: 12 }} disabled={loading}>
+            <br />
+            <button
+              className="btn btn-olive"
+              type="submit"
+              style={{ padding: "10px 24px", fontSize: 15, marginTop: 12 }}
+              disabled={loading}
+            >
               {loading ? "Buscando..." : "Entrar"}
             </button>
           </form>
 
-          <div style={{ marginTop: 24, borderTop: "1px solid var(--color-border-warm)", paddingTop: 20, fontSize: 14, color: "var(--color-text-secondary)" }}>
-            O escanea el código QR que se ve en pantalla
-            <br />
-            <button className="btn btn-olive btn-sm" style={{ marginTop: 8 }} onClick={() => alert("Funcionalidad de escaneo QR pendiente de implementar con librería de cámara")}>
-              Escanear QR
-            </button>
+          {/* Sección de escaneo QR */}
+          <div style={{ marginTop: 24, borderTop: "1px solid var(--color-border-warm)", paddingTop: 20 }}>
+            <p style={{ fontSize: 14, color: "var(--color-text-secondary)", marginBottom: 12 }}>
+              O escanea el código QR de la pantalla
+            </p>
+
+            {!scanning ? (
+              <button className="btn btn-olive btn-sm" onClick={startScan}>
+                Escanear QR con cámara
+              </button>
+            ) : (
+              <>
+                {/* Contenedor donde html5-qrcode inyecta el video */}
+                <div
+                  id="qr-reader-div"
+                  style={{
+                    width: 280,
+                    margin: "0 auto 12px",
+                    borderRadius: 8,
+                    overflow: "hidden",
+                    border: "2px solid var(--color-border)",
+                  }}
+                />
+                <button className="btn btn-outline btn-sm" onClick={stopScan}>
+                  Cancelar
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

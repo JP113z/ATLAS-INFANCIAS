@@ -53,6 +53,9 @@ export const Icons = {
   check: (
     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
   ),
+  vote: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M8 10h8M8 14h4"/><circle cx="17" cy="14" r="3"/><path d="m19 16-1.5-1.5"/></svg>
+  ),
 };
 
 // ─── Logo ───
@@ -95,10 +98,11 @@ export default function Navbar() {
         ) : (
           <>
             {user.role === "admin" && (
-              <button className="btn btn-outline" onClick={() => navTo("/admin/usuarios")}>Administrar usuarios</button>
+              <button className="btn btn-outline btn-sm" onClick={() => navTo("/admin/usuarios")}>Administrar usuarios</button>
             )}
-            <button className="btn btn-primary" onClick={() => navTo("/perfil")}>{Icons.user} Perfil</button>
-            <button className="btn btn-danger" onClick={() => { handleLogout(); navTo("/"); }}>{Icons.arrow} Cerrar Sesión</button>
+            <button className="btn btn-olive btn-sm" onClick={() => navTo("/votacion/unirse")}>{Icons.vote} Votaciones</button>
+            <button className="btn btn-primary btn-sm" onClick={() => navTo("/perfil")}>{Icons.user} Perfil</button>
+            <button className="btn btn-danger btn-sm" onClick={() => { handleLogout(); navTo("/"); }}>Cerrar Sesión</button>
           </>
         )}
       </div>
@@ -119,7 +123,8 @@ export default function Navbar() {
           ) : (
             <>
               {user.role === "admin" && <button className="btn btn-outline btn-block" onClick={() => navTo("/admin/usuarios")}>Administrar usuarios</button>}
-              <button className="btn btn-primary btn-block" onClick={() => navTo("/perfil")}>Perfil</button>
+              <button className="btn btn-olive btn-block" onClick={() => navTo("/votacion/unirse")}>{Icons.vote} Votaciones</button>
+              <button className="btn btn-primary btn-block" onClick={() => navTo("/perfil")}>{Icons.user} Perfil</button>
               <button className="btn btn-danger btn-block" onClick={() => { handleLogout(); navTo("/"); }}>Cerrar Sesión</button>
             </>
           )}

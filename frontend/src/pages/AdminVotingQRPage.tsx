@@ -1,9 +1,16 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import PageLayout from "../components/PageLayout";
-import { Icons } from "../components/Navbar";
 import * as api from "../services/api";
+
+const VOTING_DURATION_SECONDS = 20 * 60; // 20 minutos
+
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60).toString().padStart(2, "0");
+  const s = (seconds % 60).toString().padStart(2, "0");
+  return `${m}:${s}`;
+}
 
 export default function AdminVotingQRPage() {
   const { code } = useParams<{ code: string }>();
@@ -13,7 +20,10 @@ export default function AdminVotingQRPage() {
   const [voterCount, setVoterCount] = useState(0);
   const [ending, setEnding] = useState(false);
   const [error, setError] = useState("");
-  const intervalRef = useRef<number | null>(null);
+  const [timeLeft, setTimeLeft] = useState(VOTING_DURATION_SECONDS);
+
+  const pollIntervalRef = useRef<number | null>(null);
+  const countdownRef = useRef<number | null>(null);
 
   // Proteger: solo admin
   useEffect(() => {
@@ -21,6 +31,25 @@ export default function AdminVotingQRPage() {
       navigate("/mapa");
     }
   }, [user, navigate]);
+
+  const endSession = useCallback(async (auto: boolean) => {
+    if (!code || ending) return;
+    if (!auto && !confirm("¿Finalizar esta votación? Los participantes ya no podrán votar.")) return;
+
+    setEnding(true);
+
+    // Limpiar intervals antes de navegar
+    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+
+    try {
+      await api.endVoteSession(code);
+      navigate(`/votacion/${code}/resultados`);
+    } catch (err: any) {
+      setError(err.message || "Error finalizando votación");
+      setEnding(false);
+    }
+  }, [code, ending, navigate]);
 
   // Polling de votantes activos cada 5 segundos
   useEffect(() => {
@@ -33,46 +62,48 @@ export default function AdminVotingQRPage() {
     };
 
     fetchVoters();
-    intervalRef.current = window.setInterval(fetchVoters, 5000);
+    pollIntervalRef.current = window.setInterval(fetchVoters, 5000);
 
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     };
   }, [code]);
 
-  const handleEnd = async () => {
-    if (!code) return;
-    if (!confirm("¿Finalizar esta votación? Los participantes ya no podrán votar.")) return;
-    setEnding(true);
-    try {
-      await api.endVoteSession(code);
-      navigate(`/votacion/${code}/resultados`);
-    } catch (err: any) {
-      setError(err.message || "Error finalizando votación");
-      setEnding(false);
-    }
-  };
+  // Countdown de 20 minutos — cierra automáticamente al llegar a 0
+  useEffect(() => {
+    countdownRef.current = window.setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownRef.current!);
+          endSession(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
 
-  // URL para QR (en producción usarías una librería como qrcode.react)
+    return () => {
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    };
+  }, [endSession]);
+
   const votingUrl = `${window.location.origin}/votacion/${code}`;
+
+  const timerColor =
+    timeLeft <= 60 ? "var(--color-red)" :
+    timeLeft <= 120 ? "#f59e0b" :
+    "var(--color-text)";
 
   return (
     <PageLayout>
       <div className="page-center">
         <div className="card fade-in" style={{ maxWidth: 460, width: "100%", textAlign: "center" }}>
-          <a
-            onClick={() => navigate("/mapa")}
-            className="back-link"
-            style={{ textAlign: "left", display: "flex", alignItems: "center", gap: 6, fontSize: 16, fontWeight: 700, marginBottom: 24 }}
-          >
-            {Icons.back} Volver
-          </a>
 
           {error && <div className="alert alert-error">{error}</div>}
 
           <h3 style={{ fontFamily: "var(--font-display)", fontSize: 20, marginBottom: 20 }}>Código QR</h3>
 
-          {/* QR Code — usando API externa para generar QR real */}
+          {/* QR Code */}
           <div style={{
             width: 200, height: 200, margin: "0 auto 20px",
             background: "var(--color-white)", border: "3px solid var(--color-text)",
@@ -86,9 +117,9 @@ export default function AdminVotingQRPage() {
               height={180}
               style={{ imageRendering: "pixelated" }}
               onError={(e) => {
-                // Fallback si no hay internet
                 (e.target as HTMLImageElement).style.display = "none";
-                (e.target as HTMLImageElement).parentElement!.innerHTML += '<div style="font-size:13px;color:#888;padding:16px">QR no disponible sin internet.<br/>Usa el código de abajo.</div>';
+                (e.target as HTMLImageElement).parentElement!.innerHTML +=
+                  '<div style="font-size:13px;color:#888;padding:16px">QR no disponible sin internet.<br/>Usa el código de abajo.</div>';
               }}
             />
             <div style={{
@@ -116,25 +147,36 @@ export default function AdminVotingQRPage() {
             Compartí este código o el QR para que los participantes se unan
           </p>
 
+          {/* Contador regresivo */}
+          <div style={{
+            background: "var(--color-white)", border: `2px solid ${timerColor}`,
+            borderRadius: 10, padding: "8px 20px", display: "inline-block",
+            marginBottom: 16, transition: "border-color 0.5s",
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-muted)", marginBottom: 2 }}>
+              Tiempo restante
+            </div>
+            <div style={{ fontSize: 28, fontWeight: 700, fontFamily: "monospace", color: timerColor, transition: "color 0.5s" }}>
+              {formatTime(timeLeft)}
+            </div>
+            {timeLeft <= 120 && (
+              <div style={{ fontSize: 11, color: timerColor, marginTop: 2 }}>
+                {timeLeft <= 60 ? "¡La votación se cerrará pronto!" : "Menos de 2 minutos"}
+              </div>
+            )}
+          </div>
+
           <p style={{ fontSize: 18, fontWeight: 600, color: "var(--color-text)", marginBottom: 4 }}>
             Votantes actuales: <strong style={{ color: "var(--color-olive)" }}>{voterCount}</strong>
           </p>
 
           <button
             className="btn btn-olive"
-            onClick={handleEnd}
+            onClick={() => endSession(false)}
             disabled={ending}
             style={{ padding: "10px 28px", fontSize: 15, marginTop: 12 }}
           >
             {ending ? "Finalizando..." : "Finalizar votación"}
-          </button>
-
-          <button
-            className="btn btn-outline"
-            onClick={() => navigate(`/votacion/${code}/resultados`)}
-            style={{ marginTop: 8, marginLeft: 8 }}
-          >
-            Ver resultados
           </button>
         </div>
       </div>
