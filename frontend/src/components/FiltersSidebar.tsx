@@ -147,17 +147,23 @@ const updateFilter = (key: keyof StickerFilters, value: string) => {
         ))}
       </select>
         {/* Rango de fechas */}
-        <label className="label">{Icons.calendar} Fecha</label>
+        <label className="label">{Icons.calendar} Rango de fechas</label>
 
+        <label className="label" style={{ fontSize: 12, marginBottom: 4, opacity: 0.75 }}>
+          A partir de esta fecha
+        </label>
         <input
           className="input"
           type="date"
-          style={{ marginBottom: 8 }}
+          style={{ marginBottom: 12 }}
           value={filters.date_from || ""}
           onChange={(e) => updateFilter("date_from", e.target.value)}
           disabled={isDisabled}
         />
 
+        <label className="label" style={{ fontSize: 12, marginBottom: 4, opacity: 0.75 }}>
+          Hasta esta fecha
+        </label>
         <input
           className="input"
           type="date"

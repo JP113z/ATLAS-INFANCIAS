@@ -11,15 +11,16 @@ import * as api from "../services/api";
 
 // ─── Colores por categoría ───
 const CATEGORY_COLORS: Record<string, string> = {
-  peligroso: "#E53935",
-  afecto: "#E91E90",
+  riesgo:    "#E53935",
+  afecto:    "#E91E90",
   recreacion: "#4CAF50",
-  transito: "#FDD835",
+  transito:  "#FDD835",
 };
 
 
 const CATEGORY_ICONS: Record<string, string> = {
   peligroso: "/assets/peligroso.png",
+  riesgo:    "/assets/peligroso.png",   // alias: la BD usa "riesgo"
   recreacion: "/assets/recreativo.png",
   afecto: "/assets/afecto.png",
   transito: "/assets/transito.png",
@@ -36,10 +37,10 @@ function createMarkerIcon(category: string) {
   const iconUrl = CATEGORY_ICONS[category?.toLowerCase()];
 
   return L.icon({
-    iconUrl: iconUrl ??  "/assets/transito.png", 
-    iconSize: [32, 32],        
-    iconAnchor: [16, 32],      
-    popupAnchor: [0, -32],     
+    iconUrl: iconUrl ?? "/assets/transito.png",
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    popupAnchor: [0, -20],
   });
 }
 
@@ -72,9 +73,10 @@ const BASEMAPS = {
 // ─── Legend ───
 function MapLegend() {
   const items = [
-    { label: "Peligroso", color: CATEGORY_COLORS.peligroso },    { label: "Afecto", color: CATEGORY_COLORS.afecto },
-    { label: "Recreación", color: CATEGORY_COLORS.recreacion },
-    { label: "Tránsito", color: CATEGORY_COLORS.transito },
+    { label: "Riesgo / Peligroso", color: CATEGORY_COLORS.riesgo },
+    { label: "Afecto",             color: CATEGORY_COLORS.afecto },
+    { label: "Recreación",         color: CATEGORY_COLORS.recreacion },
+    { label: "Tránsito",           color: CATEGORY_COLORS.transito },
   ];
 
   return (
@@ -188,6 +190,11 @@ export default function MapPage() {
                   });
                 }}
 
+                onEachFeature={(feature, layer) => {
+                  layer.on("click", () => {
+                    setSelectedSticker(feature.properties as StickerProperties);
+                  });
+                }}
               />
             )}
           </MapContainer>
