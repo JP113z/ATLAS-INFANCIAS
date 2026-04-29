@@ -119,6 +119,7 @@ export default function Navbar() {
             <>
               <button className="btn btn-primary btn-block" onClick={() => navTo("/login")}>Iniciar Sesión</button>
               <button className="btn btn-secondary btn-block" onClick={() => navTo("/registro")}>Registrarse</button>
+              <button className="btn btn-olive btn-block" onClick={() => navTo("/votacion/unirse")}>{Icons.vote} Unirse a Votación</button>
             </>
           ) : (
             <>

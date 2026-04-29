@@ -1,10 +1,11 @@
 import os
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
+from typing import Optional
 
 from app.database import get_db
 from app.models import User
@@ -55,3 +56,22 @@ def require_admin(current_user: User = Depends(get_current_user)) -> User:
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Solo administradores")
     return current_user
+
+
+def get_optional_user(
+    request: Request,
+    db: Session = Depends(get_db),
+) -> Optional[User]:
+    """Igual que get_current_user pero no falla si no hay token — devuelve None para visitantes."""
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return None
+    token = auth_header.split(" ", 1)[1]
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str | None = payload.get("sub")
+        if not user_id:
+            return None
+    except JWTError:
+        return None
+    return db.query(User).filter(User.id == int(user_id)).first()

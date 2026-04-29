@@ -141,18 +141,19 @@ export default function MapPage() {
  
   return (
     <PageLayout noFooter>
-      <div className="map-layout">
-
-        {isMobile && (
+      {/* Botón toggle de filtros — fuera del map-layout para no romper la cadena de alturas */}
+      {isMobile && (
+        <div className="map-mobile-toggle">
           <button
             className="btn btn-primary btn-sm"
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            style={{ margin: 12 }}
           >
             {Icons.filter} {sidebarOpen ? "Ocultar filtros" : "Mostrar filtros"}
           </button>
-        )}
+        </div>
+      )}
 
+      <div className="map-layout">
         {sidebarOpen && (
           <FiltersSidebar filters={filters} onFiltersChange={setFilters} />
         )}
@@ -172,7 +173,7 @@ export default function MapPage() {
             </select>
           </div>
 
-          <MapContainer center={center} zoom={14} style={{ width: "100%", height: "100%" }}>
+          <MapContainer center={center} zoom={14} style={{ width: "100%", height: "100%", minHeight: 300 }}>
             <TileLayer
               url={BASEMAPS[basemap].url}
               attribution={BASEMAPS[basemap].attribution}

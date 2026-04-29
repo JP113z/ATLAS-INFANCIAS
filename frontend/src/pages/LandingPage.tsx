@@ -19,6 +19,7 @@ export default function LandingPage() {
           <button className="btn btn-primary btn-lg" onClick={() => navigate("/login")}>{Icons.arrow} Iniciar Sesión</button>
           <button className="btn btn-secondary btn-lg" onClick={() => navigate("/registro")}>{Icons.user} Registrarse</button>
           <button className="btn btn-outline btn-lg" onClick={() => navigate("/mapa")}>Explorar como visitante</button>
+          <button className="btn btn-olive btn-lg" onClick={() => navigate("/votacion/unirse")}>{Icons.vote} Unirse a Votación</button>
         </div>
 
         <div style={{ display: "flex", flexWrap: "wrap", gap: 24, justifyContent: "center", marginTop: 60, maxWidth: 900, width: "100%" }}>

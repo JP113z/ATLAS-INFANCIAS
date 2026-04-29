@@ -331,6 +331,7 @@ body {
   flex: 1;
   display: flex;
   position: relative;
+  min-height: 0; /* Permite que flex: 1 dé altura concreta a sus hijos (fix Leaflet) */
 }
 
 .map-sidebar {
@@ -347,6 +348,15 @@ body {
 .map-container {
   flex: 1;
   position: relative;
+  min-height: 0; /* Necesario para que height: 100% de Leaflet resuelva correctamente */
+}
+
+/* Botón de toggle de filtros en mobile (vive fuera del map-layout) */
+.map-mobile-toggle {
+  padding: 10px 16px;
+  background: var(--color-white);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
 }
 
 @media (max-width: 768px) {
@@ -356,9 +366,15 @@ body {
 
   .map-sidebar {
     width: 100%;
-    max-height: 50vh;
+    max-height: 40vh;
     border-right: none;
     border-bottom: 1px solid var(--color-border);
+    flex-shrink: 0;
+  }
+
+  .map-container {
+    /* Altura mínima de seguridad en caso de que la cadena flex falle */
+    min-height: 300px;
   }
 }
 

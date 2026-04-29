@@ -9,7 +9,8 @@ from app.models import User
 from app.models.sticker import Sticker
 from app.models.vote_session import VoteSession
 from app.models.vote_answer import VoteAnswer
-from app.security import get_current_user, require_admin
+from app.security import get_current_user, require_admin, get_optional_user
+from typing import Optional
 
 router = APIRouter(prefix="/votes", tags=["votes"])
 
@@ -108,7 +109,7 @@ def submit_vote(
     code: str,
     payload: SubmitVoteRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_optional_user),
 ):
     session = db.query(VoteSession).filter(VoteSession.code == code).first()
     if not session:
@@ -116,16 +117,18 @@ def submit_vote(
     if not session.active:
         raise HTTPException(status_code=400, detail="Esta votación ya finalizó")
 
-    already_voted = db.query(VoteAnswer).filter(
-        VoteAnswer.session_id == session.id,
-        VoteAnswer.user_id == current_user.id,
-    ).first()
-    if already_voted:
-        raise HTTPException(status_code=400, detail="Ya registraste tu voto en esta sesión")
+    # Solo verificar voto duplicado si el usuario tiene cuenta
+    if current_user is not None:
+        already_voted = db.query(VoteAnswer).filter(
+            VoteAnswer.session_id == session.id,
+            VoteAnswer.user_id == current_user.id,
+        ).first()
+        if already_voted:
+            raise HTTPException(status_code=400, detail="Ya registraste tu voto en esta sesión")
 
     vote = VoteAnswer(
         session_id=session.id,
-        user_id=current_user.id,
+        user_id=current_user.id if current_user else None,
         answer=payload.answer,
     )
     db.add(vote)
