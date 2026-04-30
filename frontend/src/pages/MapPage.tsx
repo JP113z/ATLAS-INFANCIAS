@@ -27,10 +27,6 @@ const CATEGORY_ICONS: Record<string, string> = {
 };
 
 
-function getCategoryColor(category: string): string {
-  return CATEGORY_COLORS[category?.toLowerCase()] || "#999";
-}
-
 // ─── Crear ícono de segun foto ───
 
 function createMarkerIcon(category: string) {
@@ -100,8 +96,6 @@ export default function MapPage() {
   const center: [number, number] = [9.9347, -84.0875];
 
   const [data, setData] = useState<FeatureCollection | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<StickerFilters>({});
   const [selectedSticker, setSelectedSticker] = useState<StickerProperties | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -123,12 +117,9 @@ export default function MapPage() {
 
   // Cargar stickers cuando cambian filtros
   useEffect(() => {
-    setError(null);
-    setLoading(true);
     api.getStickers(filters)
       .then(setData)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, [filters]);
 
   // Key para forzar re-render del GeoJSON

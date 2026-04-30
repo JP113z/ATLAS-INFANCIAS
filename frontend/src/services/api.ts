@@ -1,5 +1,4 @@
 import type {
-  AuthResponse,
   LoginRequest,
   RegisterRequest,
   User,
@@ -8,8 +7,6 @@ import type {
   FeatureCollection,
   StickerFilters,
   Comment,
-  VoteSession,
-  VoteResults,
 } from "../types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000";
@@ -254,23 +251,26 @@ export async function downloadGeoJSON(filters: StickerFilters = {}): Promise<Blo
 }
 
 
+// ─── Comentarios (RF_37, RF_40, RF_42–RF_44) ─────────────────────────────────
+
+/** Obtener comentarios de un sticker */
 export async function getComments(stickerId: number): Promise<Comment[]> {
   const res = await fetch(`${API_URL}/stickers/${stickerId}/comments`);
   if (!res.ok) return [];
   return res.json();
 }
 
+/** Agregar comentario a un sticker (requiere login) */
 export async function addComment(stickerId: number, content: string): Promise<Comment> {
   const res = await fetch(`${API_URL}/stickers/${stickerId}/comments`, {
     method: "POST",
-
-    headers: { ...authHeaders(), "Content-Type": "application/json", },
+    headers: authHeaders(),
     body: JSON.stringify({ content }),
   });
-
   return handleResponse<Comment>(res);
 }
 
+/** Eliminar comentario — solo admins (RF_40) */
 export async function deleteComment(stickerId: number, commentId: number): Promise<void> {
   const res = await fetch(`${API_URL}/stickers/${stickerId}/comments/${commentId}`, {
     method: "DELETE",
@@ -279,47 +279,7 @@ export async function deleteComment(stickerId: number, commentId: number): Promi
   if (!res.ok) throw new Error("Error eliminando comentario");
 }
 
-
-export async function createVoteSession(stickerId: number, question: string): Promise<VoteSession> {
-  const res = await fetch(`${API_URL}/votes`, {
-    method: "POST",
-    headers: authHeaders(),
-    body: JSON.stringify({ sticker_id: stickerId, question }),
-  });
-  return handleResponse<VoteSession>(res);
-}
-
-export async function getVoteSession(code: string): Promise<VoteSession> {
-  const res = await fetch(`${API_URL}/votes/${code}`);
-  return handleResponse<VoteSession>(res);
-}
-
-export async function submitVote(code: string, answer: boolean): Promise<{ message: string }> {
-  const res = await fetch(`${API_URL}/votes/${code}/answer`, {
-    method: "POST",
-    headers: authHeaders(),
-    body: JSON.stringify({ answer }),
-  });
-  return handleResponse(res);
-}
-
-export async function getVoteResults(code: string): Promise<VoteResults> {
-  const res = await fetch(`${API_URL}/votes/${code}/results`);
-  return handleResponse<VoteResults>(res);
-}
-
-export async function endVoteSession(code: string): Promise<void> {
-  const res = await fetch(`${API_URL}/votes/${code}/end`, {
-    method: "PUT",
-    headers: authHeaders(),
-  });
-  if (!res.ok) throw new Error("Error finalizando votación");
-}
-
-export async function getActiveVoters(code: string): Promise<{ count: number }> {
-  const res = await fetch(`${API_URL}/votes/${code}/voters`);
-  return handleResponse(res);
-}
+// ─── Perfil de usuario ────────────────────────────────────────────────────────
 
 export async function updateMyUsername(username: string): Promise<{ message: string; username: string }> {
   const res = await fetch(`${API_URL}/user/me/username`, {
