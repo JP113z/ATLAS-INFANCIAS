@@ -79,8 +79,8 @@ def test_alias_categoria():
 
 # ─── Casos de omisión ─────────────────────────────────────────────────────────
 
-def test_omite_feature_sin_category():
-    """Un feature sin 'category' debe tomarse como de transito."""
+def test_recreacion_feature_sin_category():
+    """Un feature sin 'category' debe tomarse como de recreacion."""
     feature = {
         "type": "Feature",
         "geometry": {"type": "Point", "coordinates": [-84.0, 9.9]},

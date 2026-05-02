@@ -63,7 +63,7 @@ def test_password_nueva_exactamente_6():
 # ─── CommentCreate ────────────────────────────────────────────────────────────
 
 def test_comentario_valido():
-    """Un comentario con 1-2000 caracteres debe ser aceptado."""
+    """Un comentario con 1-400 caracteres debe ser aceptado."""
     schema = CommentCreate(content="Hola, este es un comentario.")
     assert schema.content == "Hola, este es un comentario."
 
@@ -75,12 +75,12 @@ def test_comentario_vacio_falla():
 
 
 def test_comentario_demasiado_largo():
-    """Un comentario de más de 2000 caracteres debe fallar."""
+    """Un comentario de más de 400 caracteres debe fallar."""
     with pytest.raises(ValidationError):
-        CommentCreate(content="x" * 2001)
+        CommentCreate(content="x" * 401)
 
 
-def test_comentario_exactamente_2000():
+def test_comentario_exactamente_400():
     """Un comentario de exactamente 400 caracteres debe ser aceptado."""
     schema = CommentCreate(content="a" * 400)
     assert len(schema.content) == 400

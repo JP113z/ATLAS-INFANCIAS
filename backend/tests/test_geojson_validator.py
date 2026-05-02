@@ -5,7 +5,7 @@ Cubre:
   - Validación de un Feature válido
   - Validación de una FeatureCollection válida
   - Tipo incorrecto
-  - Tipo de geometría no soportado
+  - Tipo de geometría soportado
   - Coordenadas fuera de rango
   - Coordenadas con valor no numérico
   - Geometría faltante
