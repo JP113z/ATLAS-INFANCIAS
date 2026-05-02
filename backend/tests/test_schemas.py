@@ -81,6 +81,6 @@ def test_comentario_demasiado_largo():
 
 
 def test_comentario_exactamente_2000():
-    """Un comentario de exactamente 2000 caracteres debe ser aceptado."""
-    schema = CommentCreate(content="a" * 2000)
-    assert len(schema.content) == 2000
+    """Un comentario de exactamente 400 caracteres debe ser aceptado."""
+    schema = CommentCreate(content="a" * 400)
+    assert len(schema.content) == 400

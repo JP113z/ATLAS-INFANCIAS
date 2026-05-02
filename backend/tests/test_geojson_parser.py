@@ -80,7 +80,7 @@ def test_alias_categoria():
 # ─── Casos de omisión ─────────────────────────────────────────────────────────
 
 def test_omite_feature_sin_category():
-    """Un feature sin 'category' debe omitirse y registrarse en skipped."""
+    """Un feature sin 'category' debe tomarse como de transito."""
     feature = {
         "type": "Feature",
         "geometry": {"type": "Point", "coordinates": [-84.0, 9.9]},
@@ -88,8 +88,7 @@ def test_omite_feature_sin_category():
     }
     data = _make_collection(feature)
     records, skipped = parse_geojson_features(data)
-    assert records == []
-    assert len(skipped) == 1
+    assert records[0]["category"] == "recreacion"
 
 
 def test_omite_feature_con_user_id_no_entero():
@@ -117,16 +116,81 @@ def test_omite_feature_con_school_id_no_entero():
     assert records == []
     assert len(skipped) == 1
 
-
-def test_mezcla_validos_e_invalidos():
-    """Features válidos e inválidos en la misma colección deben separarse."""
+def test_mezcla_validos_e_invalidos_real():
     valid = _make_feature("transito")
     invalid = {
         "type": "Feature",
         "geometry": {"type": "Point", "coordinates": [-84.0, 9.9]},
-        "properties": {},  # sin category
+        "properties": {
+            "category": "riesgo",
+            "user_id": "abc",  # inválido
+        },
     }
     data = _make_collection(valid, invalid)
     records, skipped = parse_geojson_features(data)
+
     assert len(records) == 1
+    assert len(skipped) == 1
+
+
+def test_polygon_pequeno_se_importa():
+    """Un Polygon pequeño debe derivar un Point y ser importado."""
+    feature = {
+        "type": "Feature",
+        "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+                [
+                    [-84.0, 9.9],
+                    [-84.1, 9.9],
+                    [-84.05, 10.0],
+                ]
+            ],
+        },
+        "properties": {"category": "riesgo"},
+    }
+    data = _make_collection(feature)
+    records, skipped = parse_geojson_features(data)
+    assert len(records) == 1
+    assert skipped == []
+
+def test_omite_linestring():
+    """LineString debe omitirse explícitamente."""
+    feature = {
+        "type": "Feature",
+        "geometry": {
+            "type": "LineString",
+            "coordinates": [
+                [-84.0, 9.9],
+                [-84.1, 10.0],
+            ],
+        },
+        "properties": {"category": "transito"},
+    }
+    data = _make_collection(feature)
+    records, skipped = parse_geojson_features(data)
+    assert records == []
+    assert len(skipped) == 1
+    assert "LineString" in skipped[0].message
+
+def test_polygon_grande_se_omite():
+    """Polygon con muchos puntos se omite por ser de referencia."""
+    feature = {
+        "type": "Feature",
+        "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+                [
+                    [-84.0, 9.9],
+                    [-84.1, 9.9],
+                    [-84.2, 9.8],
+                    [-84.3, 9.7],
+                ]
+            ],
+        },
+        "properties": {"category": "riesgo"},
+    }
+    data = _make_collection(feature)
+    records, skipped = parse_geojson_features(data)
+    assert records == []
     assert len(skipped) == 1

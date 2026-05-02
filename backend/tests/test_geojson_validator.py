@@ -68,10 +68,10 @@ def test_no_dict_falla():
 
 # ─── Geometría inválida ───────────────────────────────────────────────────────
 
-def test_geometry_type_no_soportado():
-    """Geometrías distintas a Point no están soportadas y deben fallar."""
+def test_geometry_polygon_soportado():
+    """Polygon está soportada y deben aceptarla."""
     result = validate_geojson(_make_feature(geom_type="Polygon"))
-    assert result.is_valid is False
+    assert result.is_valid is True
 
 
 def test_geometry_faltante():
