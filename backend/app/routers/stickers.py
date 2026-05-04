@@ -94,7 +94,7 @@ def list_comments(sticker_id: int, db: Session = Depends(get_db)):
     rows = (
         db.query(StickerComment, User.username)
         .join(User, User.id == StickerComment.user_id)
-        .filter(StickerComment.sticker_id == sticker_id)
+        .filter(StickerComment.sticker_id == sticker_id, StickerComment.deleted == False)
         .order_by(StickerComment.created_at.asc())
         .all()
     )
@@ -145,6 +145,6 @@ def delete_comment(
     if user.role != "admin":
         raise HTTPException(status_code=403, detail="Solo admin puede eliminar comentarios")
 
-    db.delete(comment)
+    comment.deleted = True
     db.commit()
     return

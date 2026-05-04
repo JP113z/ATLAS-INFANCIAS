@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from app.database import get_db
 from app.models import User
-from app.schemas.user import UserCreate, Token, UserOut, RegisterResponse
+from app.schemas.user import UserCreate, Token, UserOut, RegisterResponse, SetUserRoleRequest
 from app.security import hash_password, verify_password, create_access_token, get_current_user, require_admin
 
 from app.models.auth_otp import AuthOtpChallenge
@@ -238,3 +238,23 @@ def set_user_block(
 
     return {"ok": True, "blocked": user.blocked}
 
+
+@router.put("/users/{user_id}/role")
+def set_user_role(
+    user_id: int,
+    req: SetUserRoleRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    if current_user.id == user_id and req.role != "admin":
+        raise HTTPException(status_code=400, detail="No puedes quitarte el rol admin")
+
+    user.role = req.role
+    db.commit()
+    db.refresh(user)
+
+    return {"ok": True, "role": user.role}

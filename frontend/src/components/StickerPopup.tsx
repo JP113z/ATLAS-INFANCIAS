@@ -116,9 +116,22 @@ const MAX_COMMENT_LEN = 400;
             <strong>Fecha:</strong> {formatDate(sticker.created_at)}
           </div>
 
-          <div style={{ opacity: 0.6 }}>
-            <strong>ID:</strong> {sticker.id}
-          </div>
+
+        </div>
+
+
+
+        {/*Comments title*/}
+        <div
+          style= {{
+            fontSize: 19,
+            fontWeight: 550,
+            color: "var(--color-text)",
+            marginBottom: 8,
+            marginTop: 4,
+          }}
+        >
+          Comentarios:
         </div>
 
         {/* Comments */}
@@ -162,7 +175,7 @@ const MAX_COMMENT_LEN = 400;
             maxLength={MAX_COMMENT_LEN}
             onChange={(e) => setNewComment(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={`Escribe un comentario... (máx. ${MAX_COMMENT_LEN})`}
+            placeholder={`Escribe un comentario... `}
             style={{ padding: "6px 10px", fontSize: 13 }}
             disabled={submitting}
           />

@@ -31,6 +31,13 @@ function authHeaders(): HeadersInit {
 }
 
 async function handleResponse<T>(res: Response): Promise<T> {
+  
+if (res.status === 401 || res.status === 403) {
+  localStorage.removeItem("token");
+  window.location.href = "/login";
+  throw new Error("Sesión inválida");
+}
+
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     const message = body.detail || body.message || `Error HTTP ${res.status}`;
@@ -163,7 +170,7 @@ export async function getUsers(): Promise<User[]> {
 
 
 export async function blockUser(userId: number, blocked: boolean) {
-  const res = await fetch(`${API_URL}/auth/users/${userId}/block`, {   // 👈 /auth
+  const res = await fetch(`${API_URL}/auth/users/${userId}/block`, {   
     method: "PUT",
     headers: authHeaders(),
     body: JSON.stringify({ blocked }),
@@ -171,7 +178,14 @@ export async function blockUser(userId: number, blocked: boolean) {
   return handleResponse<{ ok: boolean; blocked: boolean }>(res);
 }
 
-
+export async function setUserRole(userId: number, role: "user" | "admin") {
+  const res = await fetch(`${API_URL}/auth/users/${userId}/role`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify({ role }),
+  });
+  return handleResponse<{ ok: boolean; userId: number; role: "user" | "admin" }>(res);
+}
 
 export async function getSchools(): Promise<School[]> {
   const res = await fetch(`${API_URL}/stickers/schools`);
