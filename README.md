@@ -156,7 +156,7 @@ uvicorn app.main:app --reload
 ```
 Deberías ver esto en la terminal, sin errores:
 ```
-INFO:     Uvicorn running on http://127.0.0.1:8000
+INFO:     Uvicorn running on http://localhost:8000
 INFO:     Application startup complete.
 ```
 Abre estas dos URLs:
