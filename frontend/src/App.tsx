@@ -12,6 +12,10 @@ import AdminUsersPage from "./pages/AdminUsersPage";
 import TwoFactorPage from "./pages/TwoFactorPage";
 import EmailVerifyPage from "./pages/EmailVerifyPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import VotingJoinPage from "./pages/VotingJoinPage";
+import VotingQuestionPage from "./pages/VotingQuestionPage";
+import VotingResultsPage from "./pages/VotingResultsPage";
+import AdminVotingQRPage from "./pages/AdminVotingQRPage";
 
 // Styles
 import "./styles/global.css";
@@ -190,6 +194,19 @@ function AppRoutes() {
           </AdminRoute>
         }
       />
+      <Route
+        path="/admin/votacion/:code"
+        element={
+          <AdminRoute>
+            <AdminVotingQRPage />
+          </AdminRoute>
+        }
+      />
+
+      {/* ─── Votaciones — accesibles para todos ─── */}
+      <Route path="/votacion/unirse" element={<VotingJoinPage />} />
+      <Route path="/votacion/:code" element={<VotingQuestionPage />} />
+      <Route path="/votacion/:code/resultados" element={<VotingResultsPage />} />
 
       {/* ─── 404 ─── */}
       <Route path="*" element={<Navigate to="/" replace />} />
