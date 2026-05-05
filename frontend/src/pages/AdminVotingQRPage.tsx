@@ -50,7 +50,7 @@ export default function AdminVotingQRPage() {
     }
   }, [code, ending, navigate]);
 
-  // Polling de votantes activos cada 5 segundos
+  // Conteo votantes activos cada 5 segundos
   useEffect(() => {
     if (!code) return;
 
@@ -68,7 +68,7 @@ export default function AdminVotingQRPage() {
     };
   }, [code]);
 
-  // Countdown de 20 minutos — cierra automáticamente al llegar a 0
+  // Countdown de 20 minutos cierra automáticamente al llegar a 0
   useEffect(() => {
     countdownRef.current = window.setInterval(() => {
       setTimeLeft((prev) => {

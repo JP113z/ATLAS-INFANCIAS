@@ -7,7 +7,7 @@ import PageLayout from "../components/PageLayout";
 import type { VoteSession } from "../types";
 import * as api from "../services/api";
 
-// ─── Colores por categoría ───
+//  Colores por categoría 
 const CATEGORY_COLORS: Record<string, string> = {
   riesgo: "#E53935",
   peligroso: "#E53935",
@@ -38,7 +38,7 @@ export default function VotingQuestionPage() {
 
   const intervalRef = useRef<number | null>(null);
 
-  // ─── Carga inicial ───
+  // Carga inicial 
   useEffect(() => {
     if (!code) return;
     api.getVoteSession(code)
@@ -53,7 +53,7 @@ export default function VotingQuestionPage() {
       .finally(() => setLoading(false));
   }, [code, navigate]);
 
-  // ─── Polling: redirige a resultados cuando el admin cierre la votación ───
+  // Redirige a resultados cuando el admin cierre la votación 
   useEffect(() => {
     if (!code || loading || error) return;
 
@@ -110,7 +110,7 @@ export default function VotingQuestionPage() {
                 {session.question}
               </p>
 
-              {/* ─── Mapa con el sticker ─── */}
+              {/*  Mapa con el sticker  */}
               <div style={{ borderRadius: 12, overflow: "hidden", height: 200, marginBottom: 20 }}>
                 {hasLocation ? (
                   <MapContainer
@@ -140,7 +140,7 @@ export default function VotingQuestionPage() {
                 )}
               </div>
 
-              {/* ─── Botones de voto ─── */}
+              {/*  Botones de voto  */}
               {!voted ? (
                 <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
                   <button

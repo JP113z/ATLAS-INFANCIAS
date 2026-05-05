@@ -10,23 +10,13 @@ from app.models.sticker import Sticker
 from app.models.vote_session import VoteSession
 from app.models.vote_answer import VoteAnswer
 from app.security import get_current_user, require_admin, get_optional_user
+from app.schemas.votes import CreateVoteSessionRequest, SubmitVoteRequest
 from typing import Optional
 
 router = APIRouter(prefix="/votes", tags=["votes"])
 
 
-# ─── Schemas ───────────────────────────────────────────────────────────────
-
-class CreateVoteSessionRequest(BaseModel):
-    sticker_id: int
-    question: str
-
-
-class SubmitVoteRequest(BaseModel):
-    answer: bool
-
-
-# ─── Helpers ───────────────────────────────────────────────────────────────
+#  Helpers 
 
 def _generate_code(length: int = 6) -> str:
     return "".join(random.choices(string.ascii_lowercase + string.digits, k=length))
@@ -58,7 +48,7 @@ def _session_to_dict(session: VoteSession, sticker: Sticker | None) -> dict:
     }
 
 
-# ─── Endpoints ─────────────────────────────────────────────────────────────
+#  Endpoints 
 
 @router.post("")
 def create_vote_session(

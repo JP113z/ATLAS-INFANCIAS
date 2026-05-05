@@ -176,8 +176,6 @@ const MAX_COMMENT_LEN = 400;
 
         </div>
 
-
-
         {/*Comments title*/}
         <div
           style= {{
