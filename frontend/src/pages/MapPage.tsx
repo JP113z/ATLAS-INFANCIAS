@@ -197,6 +197,12 @@ export default function MapPage() {
             <StickerPopup
               sticker={selectedSticker}
               onClose={() => setSelectedSticker(null)}
+              onFilterChange={(f) => {
+                setFilters(f);
+                setSelectedSticker(null);
+                // En mobile, abrimos el sidebar para que el usuario vea el filtro activo
+                if (isMobile) setSidebarOpen(true);
+              }}
             />
           )}
         </div>

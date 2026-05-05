@@ -3,16 +3,39 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 import { Icons } from "./Navbar";
-import type { Comment, StickerProperties } from "../types";
+import type { Comment, StickerFilters, StickerProperties } from "../types";
 import * as api from "../services/api";
 
 interface StickerPopupProps {
   sticker: StickerProperties;
   onClose: () => void;
+  onFilterChange?: (filters: StickerFilters) => void;
 }
 
-export default function StickerPopup({ sticker, onClose }: StickerPopupProps) {
+/** Valor clickeable que aplica un filtro rápido (solo usuarios con sesión) */
+function FilterTag({ label, onClick }: { label: string; onClick?: () => void }) {
+  if (!onClick) return <span>{label}</span>;
+  return (
+    <span
+      className="link"
+      onClick={onClick}
+      title="Clic para filtrar por este valor"
+      style={{ fontSize: "inherit" }}
+    >
+      {label}
+    </span>
+  );
+}
+
+export default function StickerPopup({ sticker, onClose, onFilterChange }: StickerPopupProps) {
   const { user } = useAuth();
+
+  /** Aplica un filtro rápido y cierra el popup — solo si el usuario tiene sesión */
+  const applyFilter = (f: StickerFilters) => {
+    if (!user || !onFilterChange) return;
+    onFilterChange(f);
+    onClose();
+  };
   const navigate = useNavigate();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
@@ -95,26 +118,42 @@ const MAX_COMMENT_LEN = 400;
           }}
         >
           <div>
-            <strong>Categoría:</strong> {sticker.category}
+            <strong>Categoría:</strong>{" "}
+            <FilterTag
+              label={sticker.category}
+              onClick={user ? () => applyFilter({ category: sticker.category }) : undefined}
+            />
           </div>
 
           {sticker.school && (
             <div>
               <strong>Escuela:</strong>{" "}
-              {sticker.school.name}
-              {sticker.school.city ? ` (${sticker.school.city})` : ""}
+              <FilterTag
+                label={`${sticker.school.name}${sticker.school.city ? ` (${sticker.school.city})` : ""}`}
+                onClick={user ? () => applyFilter({ school_id: String(sticker.school!.id) }) : undefined}
+              />
             </div>
           )}
 
           {sticker.user && (
             <div>
-              <strong>Creado por:</strong> {sticker.user.username}
+              <strong>Creado por:</strong>{" "}
+              <FilterTag
+                label={sticker.user.username}
+                onClick={user ? () => applyFilter({ user_id: String(sticker.user!.id) }) : undefined}
+              />
             </div>
           )}
 
           <div>
             <strong>Fecha:</strong> {formatDate(sticker.created_at)}
           </div>
+
+          {user && (
+            <div style={{ marginTop: 6, fontSize: 11, color: "var(--color-text-muted)", fontStyle: "italic" }}>
+              💡 Toca un valor para filtrar el mapa
+            </div>
+          )}
 
 
         </div>
