@@ -95,3 +95,31 @@ export interface Comment {
   created_at: string;
 }
 
+// ─── Votaciones ───
+export interface VoteSession {
+  id: number;
+  code: string;
+  sticker_id: number;
+  question: string;
+  active: boolean;
+  created_by: number;
+  created_at: string;
+  sticker_lat?: number | null;
+  sticker_lon?: number | null;
+  sticker_category?: string | null;
+}
+
+export interface VoteAnswer {
+  question: string;
+  answer: boolean;
+}
+
+export interface VoteResults {
+  question: string;
+  total: number;
+  in_favor: number;
+  against: number;
+  percent_favor: number;
+  percent_against: number;
+}
+

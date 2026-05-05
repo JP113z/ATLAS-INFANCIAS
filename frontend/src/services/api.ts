@@ -7,6 +7,8 @@ import type {
   FeatureCollection,
   StickerFilters,
   Comment,
+  VoteSession,
+  VoteResults,
 } from "../types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
@@ -291,6 +293,49 @@ export async function deleteComment(stickerId: number, commentId: number): Promi
     headers: authHeaders(),
   });
   if (!res.ok) throw new Error("Error eliminando comentario");
+}
+
+// ─── Votaciones ──────────────────────────────────────────────────────────────
+
+export async function createVoteSession(stickerId: number, question: string): Promise<VoteSession> {
+  const res = await fetch(`${API_URL}/votes`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ sticker_id: stickerId, question }),
+  });
+  return handleResponse<VoteSession>(res);
+}
+
+export async function getVoteSession(code: string): Promise<VoteSession> {
+  const res = await fetch(`${API_URL}/votes/${code}`);
+  return handleResponse<VoteSession>(res);
+}
+
+export async function submitVote(code: string, answer: boolean): Promise<{ message: string }> {
+  const res = await fetch(`${API_URL}/votes/${code}/answer`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ answer }),
+  });
+  return handleResponse(res);
+}
+
+export async function getVoteResults(code: string): Promise<VoteResults> {
+  const res = await fetch(`${API_URL}/votes/${code}/results`);
+  return handleResponse<VoteResults>(res);
+}
+
+export async function endVoteSession(code: string): Promise<void> {
+  const res = await fetch(`${API_URL}/votes/${code}/end`, {
+    method: "PUT",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error("Error finalizando votación");
+}
+
+export async function getActiveVoters(code: string): Promise<{ count: number }> {
+  const res = await fetch(`${API_URL}/votes/${code}/voters`);
+  return handleResponse(res);
 }
 
 // ─── Perfil de usuario ────────────────────────────────────────────────────────

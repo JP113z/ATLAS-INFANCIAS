@@ -29,6 +29,7 @@ function FilterTag({ label, onClick }: { label: string; onClick?: () => void }) 
 
 export default function StickerPopup({ sticker, onClose, onFilterChange }: StickerPopupProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   /** Aplica un filtro rápido y cierra el popup — solo si el usuario tiene sesión */
   const applyFilter = (f: StickerFilters) => {
@@ -36,7 +37,17 @@ export default function StickerPopup({ sticker, onClose, onFilterChange }: Stick
     onFilterChange(f);
     onClose();
   };
-  const navigate = useNavigate();
+
+  const handleCreateVoting = async () => {
+    const question = prompt("Escribe la pregunta para la votación:", `¿Estás de acuerdo con que esta zona es ${sticker.category}?`);
+    if (!question) return;
+    try {
+      const session = await api.createVoteSession(sticker.id, question);
+      navigate(`/admin/votacion/${session.code}`);
+    } catch (err: any) {
+      alert("Error creando votación: " + err.message);
+    }
+  };
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(false);
@@ -98,9 +109,16 @@ const MAX_COMMENT_LEN = 400;
       <div className="sticker-popup fade-in" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--color-text)" }}>
-            Información del sticker
-          </h3>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btn btn-olive btn-sm" onClick={() => navigate("/votacion/unirse")}>
+              Unirse a votación
+            </button>
+            {user?.role === "admin" && (
+              <button className="btn btn-outline btn-sm" onClick={handleCreateVoting}>
+                Crear votación
+              </button>
+            )}
+          </div>
           <div onClick={onClose} style={{ cursor: "pointer", color: "#999", padding: 4 }}>
             {Icons.close}
           </div>
