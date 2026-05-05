@@ -48,3 +48,5 @@ class EmailChangeConfirm(BaseModel):
     challenge_id : str
     code: str = Field(min_lenght = 4, max_length = 10)
 
+class SetUserRoleRequest(BaseModel):
+    role: Literal["user", "admin"]

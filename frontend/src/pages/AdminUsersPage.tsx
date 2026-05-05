@@ -47,6 +47,21 @@ export default function AdminUsersPage() {
 
       }
   };
+
+  const handleToggleAdmin = async (u: User) => {
+    const makeAdmin = u.role !== "admin";
+    const action = makeAdmin ? "hacer ADMIN" : "quitar ADMIN";
+
+    if (!confirm(`¿Estás seguro de que quieres ${action} a este usuario?`)) return;
+
+    try {
+      await api.setUserRole(u.id, makeAdmin ? "admin" : "user");
+      const updated = await api.getUsers();
+      setUsers(updated);
+    } catch (err: any) {
+      alert("Error: " + err.message);
+    }
+};
   
   // Filtrar y paginar
   const filtered = users.filter((u) =>
@@ -114,14 +129,22 @@ export default function AdminUsersPage() {
                     </div>
                   </div>
                 </div>
+                {/*botones*/}
+                <button
+                    className={`btn btn-sm ${u.role === "admin" ? "btn-outline" : "btn-primary"}`}
+                    onClick={() => handleToggleAdmin(u)}
+                    disabled={u.id === user?.id && u.role === "admin"} 
+                  >
+                    {u.role === "admin" ? "Quitar admin" : "Hacer admin"}
+                  </button>
 
-              <button
-                className={`btn btn-sm ${u.blocked ? "btn-outline" : "btn-danger"}`}
-                onClick={() => handleToggleBlock(u)}
-                style={{ flexShrink: 0 }}
-              >
-                {u.blocked ? "Desbloquear" : "Bloquear"}
-              </button>
+                  <button
+                    className={`btn btn-sm ${u.blocked ? "btn-outline" : "btn-danger"}`}
+                    onClick={() => handleToggleBlock(u)}
+                  >
+                    {u.blocked ? "Desbloquear" : "Bloquear"}
+                  </button>
+
 
               </div>
             ))

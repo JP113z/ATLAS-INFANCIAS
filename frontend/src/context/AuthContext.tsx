@@ -16,9 +16,7 @@ interface AuthState {
   error: string | null;
 
   /**
-   * Paso 1: valida password.
-   * Retorna true si login fue directo (verified=true en BD).
-   * Retorna false si requiere 2FA (verified=false).
+   * valida password, retorna true si login fue directo, retorna false si requiere 2FA (verified=false).
    */
   handleLogin: (email: string, password: string) => Promise<boolean>;
 

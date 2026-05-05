@@ -1,17 +1,41 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+
 import { Icons } from "./Navbar";
-import type { Comment, StickerProperties } from "../types";
+import type { Comment, StickerFilters, StickerProperties } from "../types";
 import * as api from "../services/api";
 
 interface StickerPopupProps {
   sticker: StickerProperties;
   onClose: () => void;
+  onFilterChange?: (filters: StickerFilters) => void;
 }
 
-export default function StickerPopup({ sticker, onClose }: StickerPopupProps) {
+/** Valor clickeable que aplica un filtro rápido (solo usuarios con sesión) */
+function FilterTag({ label, onClick }: { label: string; onClick?: () => void }) {
+  if (!onClick) return <span>{label}</span>;
+  return (
+    <span
+      className="link"
+      onClick={onClick}
+      title="Clic para filtrar por este valor"
+      style={{ fontSize: "inherit" }}
+    >
+      {label}
+    </span>
+  );
+}
+
+export default function StickerPopup({ sticker, onClose, onFilterChange }: StickerPopupProps) {
   const { user } = useAuth();
+
+  /** Aplica un filtro rápido y cierra el popup — solo si el usuario tiene sesión */
+  const applyFilter = (f: StickerFilters) => {
+    if (!user || !onFilterChange) return;
+    onFilterChange(f);
+    onClose();
+  };
   const navigate = useNavigate();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
@@ -51,17 +75,6 @@ export default function StickerPopup({ sticker, onClose }: StickerPopupProps) {
     }
   };
 
-  const handleCreateVoting = async () => {
-    const question = prompt("Escribe la pregunta para la votación:", `¿Estas de acuerdo con que esta zona es ${sticker.category}?`);
-    if (!question) return;
-    try {
-      const session = await api.createVoteSession(sticker.id, question);
-      navigate(`/admin/votacion/${session.code}`);
-    } catch (err: any) {
-      alert("Error creando votación: " + err.message);
-    }
-  };
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -85,16 +98,9 @@ const MAX_COMMENT_LEN = 400;
       <div className="sticker-popup fade-in" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button className="btn btn-olive btn-sm" onClick={() => navigate("/votacion/unirse")}>
-              Unirse a votación
-            </button>
-            {user?.role === "admin" && (
-              <button className="btn btn-outline btn-sm" onClick={handleCreateVoting}>
-                Crear votación
-              </button>
-            )}
-          </div>
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--color-text)" }}>
+            Información del sticker
+          </h3>
           <div onClick={onClose} style={{ cursor: "pointer", color: "#999", padding: 4 }}>
             {Icons.close}
           </div>
@@ -112,20 +118,30 @@ const MAX_COMMENT_LEN = 400;
           }}
         >
           <div>
-            <strong>Categoría:</strong> {sticker.category}
+            <strong>Categoría:</strong>{" "}
+            <FilterTag
+              label={sticker.category}
+              onClick={user ? () => applyFilter({ category: sticker.category }) : undefined}
+            />
           </div>
 
           {sticker.school && (
             <div>
               <strong>Escuela:</strong>{" "}
-              {sticker.school.name}
-              {sticker.school.city ? ` (${sticker.school.city})` : ""}
+              <FilterTag
+                label={`${sticker.school.name}${sticker.school.city ? ` (${sticker.school.city})` : ""}`}
+                onClick={user ? () => applyFilter({ school_id: String(sticker.school!.id) }) : undefined}
+              />
             </div>
           )}
 
           {sticker.user && (
             <div>
-              <strong>Creado por:</strong> {sticker.user.username}
+              <strong>Creado por:</strong>{" "}
+              <FilterTag
+                label={sticker.user.username}
+                onClick={user ? () => applyFilter({ user_id: String(sticker.user!.id) }) : undefined}
+              />
             </div>
           )}
 
@@ -133,9 +149,28 @@ const MAX_COMMENT_LEN = 400;
             <strong>Fecha:</strong> {formatDate(sticker.created_at)}
           </div>
 
-          <div style={{ opacity: 0.6 }}>
-            <strong>ID:</strong> {sticker.id}
-          </div>
+          {user && (
+            <div style={{ marginTop: 6, fontSize: 11, color: "var(--color-text-muted)", fontStyle: "italic" }}>
+              💡 Toca un valor para filtrar el mapa
+            </div>
+          )}
+
+
+        </div>
+
+
+
+        {/*Comments title*/}
+        <div
+          style= {{
+            fontSize: 19,
+            fontWeight: 550,
+            color: "var(--color-text)",
+            marginBottom: 8,
+            marginTop: 4,
+          }}
+        >
+          Comentarios:
         </div>
 
         {/* Comments */}
@@ -179,7 +214,7 @@ const MAX_COMMENT_LEN = 400;
             maxLength={MAX_COMMENT_LEN}
             onChange={(e) => setNewComment(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={`Escribe un comentario... (máx. ${MAX_COMMENT_LEN})`}
+            placeholder={`Escribe un comentario... `}
             style={{ padding: "6px 10px", fontSize: 13 }}
             disabled={submitting}
           />

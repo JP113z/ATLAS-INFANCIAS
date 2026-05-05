@@ -8,7 +8,6 @@ import app.models
 from app.routers import schools, user, auth
 from app.routers.geojson import router as geojson_router
 from app.routers import stickers
-from app.routers import votes
 
 app = FastAPI(title="ATLAS Infancias API")
 
@@ -27,7 +26,6 @@ app.add_middleware(
     expose_headers=["Content-Disposition"],
 )
 app.include_router(stickers.router)
-app.include_router(votes.router)
 @app.get("/")
 def root():
     return {"status": "ok"}

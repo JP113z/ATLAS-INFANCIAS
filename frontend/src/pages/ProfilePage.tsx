@@ -7,7 +7,7 @@ import * as api from "../services/api";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
-  const { user, handleLogout, refreshUser, handleUpdateUsername, handleUpdatePassword, handleRequestEmailChange } = useAuth();
+  const { user, handleLogout, handleUpdateUsername, handleUpdatePassword, handleRequestEmailChange } = useAuth();
 
   const [editing, setEditing] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");

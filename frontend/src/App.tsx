@@ -8,11 +8,7 @@ import RegisterPage from "./pages/RegisterPage";
 import RecoverPage from "./pages/RecoverPage";
 import MapPage from "./pages/MapPage";
 import ProfilePage from "./pages/ProfilePage";
-import VotingJoinPage from "./pages/VotingJoinPage";
-import VotingQuestionPage from "./pages/VotingQuestionPage";
-import VotingResultsPage from "./pages/VotingResultsPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
-import AdminVotingQRPage from "./pages/AdminVotingQRPage";
 import TwoFactorPage from "./pages/TwoFactorPage";
 import EmailVerifyPage from "./pages/EmailVerifyPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
@@ -185,25 +181,12 @@ function AppRoutes() {
         }
       />
 
-      {/* ─── Votaciones — accesible para cualquier logueado ─── */}
-      <Route path="/votacion/unirse" element={<VotingJoinPage />} />
-      <Route path="/votacion/:code" element={<VotingQuestionPage />} />
-      <Route path="/votacion/:code/resultados" element={<VotingResultsPage />} />
-
       {/* ─── Admin only ─── */}
       <Route
         path="/admin/usuarios"
         element={
           <AdminRoute>
             <AdminUsersPage />
-          </AdminRoute>
-        }
-      />
-      <Route
-        path="/admin/votacion/:code"
-        element={
-          <AdminRoute>
-            <AdminVotingQRPage />
           </AdminRoute>
         }
       />
