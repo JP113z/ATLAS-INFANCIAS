@@ -1,6 +1,7 @@
 import random
 import string
-from fastapi import APIRouter, Depends, HTTPException
+import os
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
@@ -18,12 +19,27 @@ router = APIRouter(prefix="/votes", tags=["votes"])
 
 #  Helpers 
 
+
 def _generate_code(length: int = 6) -> str:
     return "".join(random.choices(string.ascii_lowercase + string.digits, k=length))
 
 
-def _session_to_dict(session: VoteSession, sticker: Sticker | None) -> dict:
-    """Construye el dict de respuesta incluyendo la ubicación del sticker."""
+def _get_frontend_base_url(request: Request) -> str:
+    #Prioridad: variable de entorno explícita
+    public_url = os.getenv("FRONTEND_PUBLIC_URL")
+    if public_url:
+        return public_url.rstrip("/")
+
+    # Si el frontend llama al backend desde otro origen, usar Origin
+    origin = request.headers.get("origin")
+    if origin:
+        return origin.rstrip("/")
+
+    # Fallback: host de la request actual
+    return f"{request.url.scheme}://{request.headers.get('host')}".rstrip("/")
+
+
+def _session_to_dict(session: VoteSession, sticker: Sticker | None, join_url: str) -> dict:
     lat = lon = category = None
     if sticker and sticker.geojson:
         try:
@@ -45,14 +61,14 @@ def _session_to_dict(session: VoteSession, sticker: Sticker | None) -> dict:
         "sticker_lat": lat,
         "sticker_lon": lon,
         "sticker_category": category,
+        "join_url": join_url,
     }
 
-
-#  Endpoints 
 
 @router.post("")
 def create_vote_session(
     payload: CreateVoteSessionRequest,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
@@ -63,7 +79,6 @@ def create_vote_session(
     if not payload.question.strip():
         raise HTTPException(status_code=400, detail="La pregunta no puede estar vacía")
 
-    # Generar código único
     for _ in range(10):
         code = _generate_code()
         if not db.query(VoteSession).filter(VoteSession.code == code).first():
@@ -81,17 +96,24 @@ def create_vote_session(
     db.commit()
     db.refresh(session)
 
-    return _session_to_dict(session, sticker)
+    frontend_base = _get_frontend_base_url(request)
+    join_url = f"{frontend_base}/votacion/{session.code}"
+
+    return _session_to_dict(session, sticker, join_url)
 
 
 @router.get("/{code}")
-def get_vote_session(code: str, db: Session = Depends(get_db)):
+def get_vote_session(code: str, request: Request, db: Session = Depends(get_db)):
     session = db.query(VoteSession).filter(VoteSession.code == code).first()
     if not session:
         raise HTTPException(status_code=404, detail="Sesión de votación no encontrada")
 
     sticker = db.query(Sticker).filter(Sticker.id == session.sticker_id).first()
-    return _session_to_dict(session, sticker)
+
+    frontend_base = _get_frontend_base_url(request)
+    join_url = f"{frontend_base}/votacion/{session.code}"
+
+    return _session_to_dict(session, sticker, join_url)
 
 
 @router.post("/{code}/answer")

@@ -21,6 +21,7 @@ export default function AdminVotingQRPage() {
   const [ending, setEnding] = useState(false);
   const [error, setError] = useState("");
   const [timeLeft, setTimeLeft] = useState(VOTING_DURATION_SECONDS);
+  const [session, setSession] = useState<any>(null);
 
   const pollIntervalRef = useRef<number | null>(null);
   const countdownRef = useRef<number | null>(null);
@@ -31,6 +32,15 @@ export default function AdminVotingQRPage() {
       navigate("/mapa");
     }
   }, [user, navigate]);
+  
+  useEffect(() => {
+  if (!code) return;
+
+  api.getVoteSession(code)
+    .then((data) => setSession(data))
+    .catch(() => {});
+}, [code]);
+
 
   const endSession = useCallback(async (auto: boolean) => {
     if (!code || ending) return;
@@ -86,7 +96,7 @@ export default function AdminVotingQRPage() {
     };
   }, [endSession]);
 
-  const votingUrl = `${window.location.origin}/votacion/${code}`;
+  const votingUrl = session?.join_url; 
 
   const timerColor =
     timeLeft <= 60 ? "var(--color-red)" :
@@ -109,6 +119,8 @@ export default function AdminVotingQRPage() {
             borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
             position: "relative", overflow: "hidden",
           }}>
+
+          {votingUrl ? (
             <img
               src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(votingUrl)}`}
               alt="QR Code"
@@ -121,14 +133,30 @@ export default function AdminVotingQRPage() {
                   '<div style="font-size:13px;color:#888;padding:16px">QR no disponible sin internet.<br/>Usa el código de abajo.</div>';
               }}
             />
-            <div style={{
-              position: "absolute", top: -1, left: "50%", transform: "translateX(-50%)",
-              background: "var(--color-text)", color: "var(--color-white)",
-              padding: "2px 12px", borderRadius: "0 0 6px 6px", fontSize: 11, fontWeight: 700,
-            }}>
-              SCAN ME!
+          ) : (
+            <div style={{ fontSize: 13, color: "#888", padding: 16 }}>
+              Generando QR...
             </div>
+          )}
+
+          <div
+            style={{
+              position: "absolute",
+              top: -1,
+              left: "50%",
+              transform: "translateX(-50%)",
+              background: "var(--color-text)",
+              color: "var(--color-white)",
+              padding: "2px 12px",
+              borderRadius: "0 0 6px 6px",
+              fontSize: 11,
+              fontWeight: 700,
+            }}
+          >
+            SCAN ME!
           </div>
+        </div>
+
 
           <p style={{ fontSize: 15, fontWeight: 600, color: "var(--color-text-secondary)" }}>
             Código de la votación
