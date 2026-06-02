@@ -175,12 +175,18 @@ Se necesitan tres terminales abiertas simultáneamente:
 ```bash
 # Terminal 1 — Frontend en http://localhost:5173
 cd frontend
-npm run dev
+npm run dev   
+
+# o tambien
+npm run dev -- --host
 
 # Terminal 2 — Backend en http://localhost:8000
 cd backend
 venv\Scripts\activate
 uvicorn app.main:app --reload
+
+# O tambien
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 # Terminal 3 — Base de datos
 # Usar psql o pgAdmin

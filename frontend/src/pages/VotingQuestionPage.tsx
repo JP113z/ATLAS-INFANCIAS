@@ -7,23 +7,23 @@ import PageLayout from "../components/PageLayout";
 import type { VoteSession } from "../types";
 import * as api from "../services/api";
 
-//  Colores por categoría 
-const CATEGORY_COLORS: Record<string, string> = {
-  riesgo: "#E53935",
-  peligroso: "#E53935",
-  afecto: "#E91E90",
-  recreacion: "#4CAF50",
-  transito: "#FDD835",
+//  Íconos por categoría (mismos PNG que el mapa principal)
+const CATEGORY_ICONS: Record<string, string> = {
+  peligroso: "/assets/peligroso.png",
+  riesgo:    "/assets/peligroso.png",   // alias: la BD usa "riesgo"
+  recreacion: "/assets/recreativo.png",
+  afecto:    "/assets/afecto.png",
+  transito:  "/assets/transito.png",
 };
 
 function createMarkerIcon(category?: string | null) {
-  const color = CATEGORY_COLORS[(category ?? "").toLowerCase()] ?? "#999";
-  const svg = `
-    <svg width="28" height="38" viewBox="0 0 28 38" xmlns="http://www.w3.org/2000/svg">
-      <path d="M14 0C6.27 0 0 6.27 0 14c0 10.5 14 24 14 24s14-13.5 14-24C28 6.27 21.73 0 14 0z" fill="${color}"/>
-      <circle cx="14" cy="14" r="6" fill="#fff"/>
-    </svg>`;
-  return L.divIcon({ html: svg, className: "", iconSize: [28, 38], iconAnchor: [14, 38] });
+  const iconUrl = CATEGORY_ICONS[(category ?? "").toLowerCase()];
+  return L.icon({
+    iconUrl: iconUrl ?? "/assets/transito.png",
+    iconSize: [40, 40],
+    iconAnchor: [20, 20],
+    popupAnchor: [0, -20],
+  });
 }
 
 export default function VotingQuestionPage() {
